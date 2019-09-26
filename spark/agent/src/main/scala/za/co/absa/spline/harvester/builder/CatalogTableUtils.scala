@@ -26,13 +26,16 @@ object CatalogTableUtils {
     (pathQualifier: PathQualifier, session: SparkSession): SourceIdentifier = {
     val uri = table.storage.locationUri
       .map(_.toString)
-      .getOrElse({
-        val catalog = session.catalog
-        val TableIdentifier(tableName, maybeTableDatabase) = table.identifier
-        val databaseName = maybeTableDatabase getOrElse catalog.currentDatabase
-        val databaseLocation = catalog.getDatabase(databaseName).locationUri.stripSuffix("/")
-        s"$databaseLocation/${tableName.toLowerCase}"
-      })
+      .getOrElse(createTablePathURI(table.identifier)(session))
     SourceIdentifier(table.provider, Seq(pathQualifier.qualify(uri)))
+  }
+
+  def createTablePathURI(tableIdentifier: TableIdentifier)
+    (session: SparkSession): String = {
+    val catalog = session.catalog
+    val TableIdentifier(tableName, maybeTableDatabase) = tableIdentifier
+    val databaseName = maybeTableDatabase getOrElse catalog.currentDatabase
+    val databaseLocation = catalog.getDatabase(databaseName).locationUri.stripSuffix("/")
+    s"$databaseLocation/${tableName.toLowerCase}"
   }
 }
