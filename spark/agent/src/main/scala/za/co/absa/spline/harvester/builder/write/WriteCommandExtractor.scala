@@ -26,9 +26,8 @@ import org.apache.spark.sql.hive.execution.{CreateHiveTableAsSelectCommand, Inse
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import za.co.absa.spline.common.extractors.{AccessorMethodValueExtractor, SafeTypeMatchingExtractor}
-import za.co.absa.spline.harvester.builder.CatalogTableUtils._
-import za.co.absa.spline.harvester.builder.SourceIdentifier
-import za.co.absa.spline.harvester.builder.write.WriteCommandExtractor.{hasPropertySatisfyingPredicate, _}
+import za.co.absa.spline.harvester.builder.write.WriteCommandExtractor._
+import za.co.absa.spline.harvester.builder.{SourceIdentifier, SourceUri}
 import za.co.absa.spline.harvester.qualifier.PathQualifier
 
 import scala.PartialFunction.condOpt
@@ -38,64 +37,65 @@ class WriteCommandExtractor(pathQualifier: PathQualifier, session: SparkSession)
 
   def asWriteCommand(operation: LogicalPlan): Option[WriteCommand] = condOpt(operation) {
     case cmd: SaveIntoDataSourceCommand =>
-      if (hasPropertySatisfyingPredicate[String](cmd)("provider", _ == "jdbc")
-        || hasPropertySatisfyingPredicate[Any](cmd)("dataSource", _.isInstanceOf[JdbcRelationProvider])) {
-        val jdbcConnectionString = cmd.options("url")
-        val tableName = cmd.options("dbtable")
-        WriteCommand(cmd.nodeName, SourceIdentifier(Some("jdbc"), Seq(s"$jdbcConnectionString:$tableName")), cmd.mode, cmd.query)
-      }
-      else {
-        val maybeSourceType = DataSourceTypeExtractor.unapply(cmd)
-        val maybeFormat = maybeSourceType.map {
-          case dsr: DataSourceRegister => dsr.shortName
-          case o => o.toString
-        }
-        val opts = cmd.options
-        val uri = opts.get("path").map(pathQualifier.qualify)
-          .orElse(opts.get("topic").filter(_ => opts.contains("kafka.bootstrap.servers")).map(topic => s"kafka:$topic"))
-          .getOrElse(sys.error(s"Cannot extract source URI from the options: ${opts.keySet mkString ","}"))
-        WriteCommand(cmd.nodeName, SourceIdentifier(maybeFormat, Seq(uri)), cmd.mode, cmd.query, opts)
+      val maybeSourceType = DataSourceTypeExtractor.unapply(cmd)
+      maybeSourceType match {
+        case Some(sourceType) if sourceType == "jdbc" || sourceType.isInstanceOf[JdbcRelationProvider] =>
+          val jdbcConnectionString = cmd.options("url")
+          val tableName = cmd.options("dbtable")
+          WriteCommand(cmd.nodeName, SourceIdentifier.forJDBC(jdbcConnectionString, tableName), cmd.mode, cmd.query)
+        case _ =>
+          val maybeFormat = maybeSourceType.map {
+            case dsr: DataSourceRegister => dsr.shortName
+            case o => o.toString
+          }
+          val opts = cmd.options
+          val uri = opts.get("path").map(pathQualifier.qualify)
+            .orElse(opts.get("topic").filter(_ => opts.contains("kafka.bootstrap.servers")).map(SourceUri.forKafka))
+            .getOrElse(sys.error(s"Cannot extract source URI from the options: ${opts.keySet mkString ","}"))
+          WriteCommand(cmd.nodeName, SourceIdentifier(maybeFormat, uri), cmd.mode, cmd.query, opts)
       }
 
     case cmd: InsertIntoHadoopFsRelationCommand =>
       val path = cmd.outputPath.toString
       val format = cmd.fileFormat.toString
       val qPath = pathQualifier.qualify(path)
-      WriteCommand(cmd.nodeName, SourceIdentifier(Some(format), Seq(qPath)), cmd.mode, cmd.query, cmd.options)
+      WriteCommand(cmd.nodeName, SourceIdentifier(Some(format), qPath), cmd.mode, cmd.query, cmd.options)
 
     case `_: InsertIntoDataSourceDirCommand`(cmd) =>
-      val uri = cmd.storage.locationUri.getOrElse(sys.error(s"Cannot determine the dats source location: ${cmd.storage}"))
-      val mode = if (cmd.overwrite) Overwrite else Append
-      WriteCommand(cmd.nodeName, SourceIdentifier(Some(cmd.provider), Seq(uri.toString)), mode, cmd.query)
+      asDirWriteCommand(cmd.nodeName, cmd.storage, cmd.provider, cmd.overwrite, cmd.query)
 
     case `_: InsertIntoHiveDirCommand`(cmd) =>
-      val uri = cmd.storage.locationUri.getOrElse(sys.error(s"Cannot determine the dats source location: ${cmd.storage}"))
-      val mode = if (cmd.overwrite) Overwrite else Append
-      WriteCommand(cmd.nodeName, SourceIdentifier(Some("hive"), Seq(uri.toString)), mode, cmd.query)
+      asDirWriteCommand(cmd.nodeName, cmd.storage, "hive", cmd.overwrite, cmd.query)
 
     case `_: InsertIntoHiveTable`(cmd) =>
       val mode = if (cmd.overwrite) Overwrite else Append
       asTableWriteCommand(cmd.nodeName, cmd.table, mode, cmd.query)
 
     case `_: CreateHiveTableAsSelectCommand`(cmd) =>
-      val sourceId = toSourceIdentifier(cmd.tableDesc)(pathQualifier, session)
-      WriteCommand(cmd.nodeName, sourceId, Overwrite, cmd.query)
+      val sourceId = SourceIdentifier.forTable(cmd.tableDesc)(pathQualifier, session)
+      WriteCommand(cmd.nodeName, sourceId, cmd.mode, cmd.query)
 
     case cmd: CreateDataSourceTableAsSelectCommand =>
       asTableWriteCommand(cmd.nodeName, cmd.table, cmd.mode, cmd.query)
 
     case dtc: DropTableCommand =>
-      val uri = createTablePathURI(dtc.tableName)(session)
-      val sourceId = SourceIdentifier(None, Seq(pathQualifier.qualify(uri)))
+      val uri = SourceUri.forTable(dtc.tableName)(session)
+      val sourceId = SourceIdentifier(None, pathQualifier.qualify(uri))
       WriteCommand(dtc.nodeName, sourceId, Overwrite, dtc)
 
     case ctc: CreateTableCommand =>
-      val sourceId = toSourceIdentifier(ctc.table)(pathQualifier, session)
+      val sourceId = SourceIdentifier.forTable(ctc.table)(pathQualifier, session)
       WriteCommand(ctc.nodeName, sourceId, Overwrite, ctc)
   }
 
+  private def asDirWriteCommand(name: String, storage: CatalogStorageFormat, provider: String, overwrite: Boolean, query: LogicalPlan) = {
+    val uri = storage.locationUri.getOrElse(sys.error(s"Cannot determine the data source location: $storage"))
+    val mode = if (overwrite) Overwrite else Append
+    WriteCommand(name, SourceIdentifier(Some(provider), uri.toString), mode, query)
+  }
+
   private def asTableWriteCommand(name: String, table: CatalogTable, mode: SaveMode, query: LogicalPlan) = {
-    val sourceIdentifier = toSourceIdentifier(table)(pathQualifier, session)
+    val sourceIdentifier = SourceIdentifier.forTable(table)(pathQualifier, session)
     WriteCommand(name, sourceIdentifier, mode, query, Map("table" -> table))
   }
 }
@@ -123,6 +123,4 @@ object WriteCommandExtractor {
 
   private object DataSourceTypeExtractor extends AccessorMethodValueExtractor[AnyRef]("provider", "dataSource")
 
-  private def hasPropertySatisfyingPredicate[A: Manifest](o: AnyRef)(key: String, predicate: A => Boolean): Boolean =
-    AccessorMethodValueExtractor[A](key).apply(o).exists(predicate)
 }

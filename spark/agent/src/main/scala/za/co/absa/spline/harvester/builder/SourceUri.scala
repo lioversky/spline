@@ -18,19 +18,13 @@ package za.co.absa.spline.harvester.builder
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.catalog.CatalogTable
-import za.co.absa.spline.harvester.qualifier.PathQualifier
 
-object CatalogTableUtils {
-  def toSourceIdentifier(table: CatalogTable)
-    (pathQualifier: PathQualifier, session: SparkSession): SourceIdentifier = {
-    val uri = table.storage.locationUri
-      .map(_.toString)
-      .getOrElse(createTablePathURI(table.identifier)(session))
-    SourceIdentifier(table.provider, Seq(pathQualifier.qualify(uri)))
-  }
+object SourceUri {
+  def forKafka(topic: String): String = s"kafka:$topic"
 
-  def createTablePathURI(tableIdentifier: TableIdentifier)
+  def forJDBC(connectionUrl: String, table: String): String = s"$connectionUrl:$table"
+
+  def forTable(tableIdentifier: TableIdentifier)
     (session: SparkSession): String = {
     val catalog = session.catalog
     val TableIdentifier(tableName, maybeTableDatabase) = tableIdentifier
