@@ -106,21 +106,25 @@ object WriteCommandExtractor {
 
   private object `_: CreateHiveTableAsSelectCommand` extends SafeTypeMatchingExtractor(classOf[CreateHiveTableAsSelectCommand])
 
-  private object `_: InsertIntoHiveDirCommand` extends SafeTypeMatchingExtractor[ {
+  private object `_: InsertIntoHiveDirCommand` extends SafeTypeMatchingExtractor[InsertIntoHiveDirCommand]("org.apache.spark.sql.hive.execution.InsertIntoHiveDirCommand")
+
+  private object `_: InsertIntoDataSourceDirCommand` extends SafeTypeMatchingExtractor[InsertIntoDataSourceDirCommand]("org.apache.spark.sql.execution.command.InsertIntoDataSourceDirCommand")
+
+  private object DataSourceTypeExtractor extends AccessorMethodValueExtractor[AnyRef]("provider", "dataSource")
+
+  private type InsertIntoHiveDirCommand = {
     def storage: CatalogStorageFormat
     def query: LogicalPlan
     def overwrite: Boolean
     def nodeName: String
-  }]("org.apache.spark.sql.hive.execution.InsertIntoHiveDirCommand")
+  }
 
-  private object `_: InsertIntoDataSourceDirCommand` extends SafeTypeMatchingExtractor[ {
+  private type InsertIntoDataSourceDirCommand = {
     def storage: CatalogStorageFormat
     def provider: String
     def query: LogicalPlan
     def overwrite: Boolean
     def nodeName: String
-  }]("org.apache.spark.sql.execution.command.InsertIntoDataSourceDirCommand")
-
-  private object DataSourceTypeExtractor extends AccessorMethodValueExtractor[AnyRef]("provider", "dataSource")
+  }
 
 }
