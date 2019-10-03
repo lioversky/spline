@@ -74,6 +74,7 @@ class LineageProjectionMergerSpec extends AsyncFunSpec with Matchers with Mockit
         "appName",
         1L,
         spark.SPARK_VERSION,
+        Map.empty,
         operations,
         datasets,
         attributes,
@@ -464,6 +465,7 @@ object LineageProjectionMergerSpec {
       timestamp = -1,
       sparkVer = spark.SPARK_VERSION,
       operations = operations,
+      metrics = Map.empty,
       datasets = Seq(MetaDataset(operations.head.mainProps.output, Schema(Nil))),
       attributes = attributes,
       dataTypes = Nil)

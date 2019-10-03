@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package za.co.absa.spline.persistence.atlas.model
+package za.co.absa.spline.model
 
 import java.util.UUID
 
-import org.apache.atlas.model.instance.AtlasEntity
-
 /**
-  * The trait represents a lineage entity that can be identified by UUID.
-  */
-trait QualifiedEntity {
-  def qualifiedName: UUID
-}
+ * Create by hongxun on 2019/9/19
+ */
+case class HiveTable(id: UUID, name: String, owner: String,
+                     comment: String, tableType: String,
+                     db: HiveDatabase, sd: HiveStorage, columns: Seq[HiveColumn])
 
-trait HasReferredEntities {
-  def getReferredEntities: List[AtlasEntity]
-}
+case class HiveDatabase(id: UUID, name: String)
+
+case class HiveColumn(id: UUID, name: String, dataType: String, owner: String)
+
+case class HiveStorage(id: UUID, location: String, compressed: Boolean,
+                       inputFormat: String, outputFormat: String,
+                       db: String, table: String)

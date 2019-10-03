@@ -44,4 +44,5 @@ object SparkDataTypes{
   val BinaryExpression : String = "spark_binary_expression"
   val AttributeReferenceExpression : String = "spark_attribute_reference_expression"
   val UDFExpression : String = "spark_udf_expression"
+  val SparkProcess: String = "spark_process"
 }

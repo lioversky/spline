@@ -19,7 +19,7 @@ package za.co.absa.spline.persistence.atlas.model
 import java.util.UUID
 
 import org.apache.atlas.AtlasClient
-import org.apache.atlas.v1.model.instance.{Id, Referenceable}
+import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId}
 
 import scala.collection.JavaConverters._
 
@@ -43,7 +43,7 @@ trait DataType extends QualifiedEntity{
     */
   val nullable: Boolean
 
-  def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (Id, String)]): Unit = {}
+  def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = {}
 }
 
 /**
@@ -52,7 +52,7 @@ trait DataType extends QualifiedEntity{
   * @param qualifiedName An unique identifier
   * @param nullable A flag describing whether the type is nullable or not
   */
-class SimpleDataType(val name : String, val qualifiedName : UUID, val nullable: Boolean) extends Referenceable  (
+class SimpleDataType(val name : String, val qualifiedName : UUID, val nullable: Boolean) extends AtlasEntity  (
   SparkDataTypes.SimpleDataType,
   new java.util.HashMap[String, Object]{
     put(AtlasClient.NAME, name)
@@ -67,7 +67,7 @@ class SimpleDataType(val name : String, val qualifiedName : UUID, val nullable: 
   * @param qualifiedName An unique identifier
   * @param nullable A flag describing whether the type is nullable or not
   */
-class StructDataType(fields: Seq[StructField], val qualifiedName : UUID, val nullable: Boolean) extends Referenceable(
+class StructDataType(fields: Seq[StructField], val qualifiedName : UUID, val nullable: Boolean) extends AtlasEntity(
   SparkDataTypes.StructDataType,
   new java.util.HashMap[String, Object]{
     put(AtlasClient.NAME, "struct")
@@ -79,7 +79,7 @@ class StructDataType(fields: Seq[StructField], val qualifiedName : UUID, val nul
 {
   val name = "struct"
 
-  override def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (Id, String)]): Unit = fields.foreach(_.resolveIds(splineToAtlasIdAndNameMapping))
+  override def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = fields.foreach(_.resolveIds(splineToAtlasIdAndNameMapping))
 }
 
 /**
@@ -88,17 +88,17 @@ class StructDataType(fields: Seq[StructField], val qualifiedName : UUID, val nul
   * @param qualifiedName An unique identifier
   * @param dataType A data type of the sub-attribute (element)
   */
-class StructField(name: String, qualifiedName: String, dataType: UUID) extends Referenceable(
+class StructField(name: String, qualifiedName: String, dataType: UUID) extends AtlasEntity(
   SparkDataTypes.StructField,
   new java.util.HashMap[String, Object]{
     put(AtlasClient.NAME, name)
     put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName)
   }
 ){
-  def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (Id, String)]): Unit = {
+  def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = {
     val (id, name) = splineToAtlasIdAndNameMapping(dataType)
-    set("type", name)
-    set("typeRef", id)
+    setAttribute("type", name)
+    setAttribute("typeRef", id)
   }
 }
 
@@ -108,7 +108,7 @@ class StructField(name: String, qualifiedName: String, dataType: UUID) extends R
   * @param qualifiedName An unique identifier
   * @param nullable A flag describing whether the type is nullable or not
   */
-class ArrayDataType(elementDataType: UUID, val qualifiedName : UUID, val nullable: Boolean) extends Referenceable(
+class ArrayDataType(elementDataType: UUID, val qualifiedName : UUID, val nullable: Boolean) extends AtlasEntity(
   SparkDataTypes.ArrayDataType,
   new java.util.HashMap[String, Object]{
     put(AtlasClient.NAME, "array")
@@ -119,8 +119,8 @@ class ArrayDataType(elementDataType: UUID, val qualifiedName : UUID, val nullabl
 {
   val name = "array"
 
-  override def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (Id, String)]): Unit = {
+  override def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = {
     val (id, _) = splineToAtlasIdAndNameMapping(elementDataType)
-    set("elementType", id)
+    setAttribute("elementType", id)
   }
 }

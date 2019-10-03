@@ -16,35 +16,115 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
+import java.util.UUID
+
 import org.apache.atlas.AtlasClient
-import org.apache.atlas.v1.model.instance.Referenceable
+import org.apache.atlas.`type`.AtlasTypeUtil
+import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
+
+import scala.collection.JavaConverters._
 
 /**
-  * The object represents an enumeration of endpoint directions.
-  */
+ * The object represents an enumeration of endpoint directions.
+ */
 object EndpointDirection extends Enumeration {
   type EndpointDirection = Value
   val input, output = Value
 }
 
 /**
-  * The object represents an enumeration of endpoint types.
-  */
+ * The object represents an enumeration of endpoint types.
+ */
 object EndpointType extends Enumeration {
   type EndpointType = Value
-  val file = Value
+  val file, hive_table = Value
 }
 
+
 /**
-  * The class represents a file endpoint.
-  * @param path A relative path to the file
-  * @param uri An absolute path to the file including cluster name, etc.
-  */
-class FileEndpoint(val path: String, uri: String) extends Referenceable(
+ * The class represents a file endpoint.
+ *
+ * @param path A relative path to the file
+ * @param uri  An absolute path to the file including cluster name, etc.
+ */
+class FileEndpoint(val path: String, uri: String) extends AtlasEntity(
   SparkDataTypes.FileEndpoint,
-  new java.util.HashMap[String, Object]{
+  new java.util.HashMap[String, Object] {
     put(AtlasClient.NAME, path)
     put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, uri)
     put("path", path)
   }
+) with HasReferredEntities {
+  override def getReferredEntities: List[AtlasEntity] = Nil
+}
+
+class HiveDatabase(name: String, clusterName: String) extends AtlasEntity(
+  "hive_db", new java.util.HashMap[String, Object] {
+    put(AtlasClient.NAME, name)
+    put("clusterName", clusterName)
+    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$name@$clusterName")
+  }
 )
+
+class HiveTable(val uuid: UUID,
+                name: String,
+                db: String,
+                owner: String,
+                comment: String,
+                tableType: String,
+                clusterName: String,
+                var database: HiveDatabase,
+                var storage: HiveStorage = null,
+                var columns: Seq[HiveColumn] = null
+               ) extends AtlasEntity(
+  "hive_table",
+  new java.util.HashMap[String, Object] {
+    put(AtlasClient.NAME, name)
+    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$db.$name@$clusterName")
+    put("comment", comment)
+    put("owner", owner)
+    put("tableType", tableType)
+    put("temporary", "false")
+    put("db", AtlasTypeUtil.getAtlasObjectId(database))
+  }
+) with HasReferredEntities {
+
+
+  def setIds(sd: HiveStorage, columns: Seq[HiveColumn]): Unit = {
+    this.storage = sd
+    this.columns = columns
+    this.getAttributes.put("sd", AtlasTypeUtil.getAtlasObjectId(sd))
+    this.getAttributes.put("columns", AtlasTypeUtil.getAtlasObjectIds(columns.map(_.asInstanceOf[AtlasEntity]).asJava))
+
+  }
+
+  override def getReferredEntities: List[AtlasEntity] = {
+    List(database, storage) ++ columns
+  }
+
+}
+
+class HiveColumn(name: String, dataType: String, owner: String, db: String, table: String, tableId: Id, clusterName: String) extends AtlasEntity(
+  "hive_column", new java.util.HashMap[String, Object] {
+    put(AtlasClient.NAME, name)
+    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$db.$table.$name@$clusterName")
+    put("type", dataType)
+    put("owner", owner)
+    put("table", tableId)
+  }
+)
+
+class HiveStorage(location: String, compressed: Boolean,
+                  inputFormat: String, outputFormat: String,
+                  db: String, table: String, tableId: Id,
+                  clusterName: String) extends AtlasEntity(
+  "hive_storagedesc", new java.util.HashMap[String, Object] {
+    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$db.$table@${clusterName}_storage")
+    put("location", location)
+    put("compressed", compressed.toString)
+    put("inputFormat", inputFormat)
+    put("outputFormat", outputFormat)
+    put("table", tableId)
+  }
+)
+

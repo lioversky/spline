@@ -19,7 +19,8 @@ package za.co.absa.spline.persistence.atlas.model
 import java.util.UUID
 
 import org.apache.atlas.AtlasClient
-import org.apache.atlas.v1.model.instance.{Id, Referenceable}
+import org.apache.atlas.`type`.AtlasTypeUtil
+import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 import scala.collection.JavaConverters._
 
@@ -50,7 +51,7 @@ class Expression(
   val commonProperties: ExpressionCommonProperties,
   entityType: String = SparkDataTypes.Expression,
   childProperties : Map[String, AnyRef] = Map.empty
-) extends Referenceable (
+) extends AtlasEntity (
   entityType,
   new java.util.HashMap[String, Object]{
     put(AtlasClient.NAME, commonProperties.text)
@@ -58,10 +59,15 @@ class Expression(
     put("text", commonProperties.text)
     put("expressionType", commonProperties.expressionType)
     put("dataType", commonProperties.dataType)
-    put("children", commonProperties.children.asJava)
+    put ("children", AtlasTypeUtil.getAtlasObjectIds(commonProperties.children.map(_.asInstanceOf[AtlasEntity]).asJava))
     childProperties.foreach(i => put(i._1, i._2))
   }
-)
+) with HasReferredEntities{
+  override def getReferredEntities: List[AtlasEntity] = {
+    val childEntities = commonProperties.children.map(_.asInstanceOf[AtlasEntity]).toList
+    childEntities.flatMap { case h: HasReferredEntities => h.getReferredEntities } ++ childEntities
+  }
+}
 
 /**
   * The class represents renaming of an underlying expression to a specific alias.

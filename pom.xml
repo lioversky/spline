@@ -20,7 +20,7 @@
 
     <groupId>za.co.absa.spline</groupId>
     <artifactId>spline</artifactId>
-    <version>0.3.9</version>
+    <version>0.3.9-dip</version>
 
     <packaging>pom</packaging>
 
@@ -36,17 +36,6 @@
         <developerConnection>${scm.developerConnection}</developerConnection>
         <tag>release/0.3.9</tag>
     </scm>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
 
     <modules>
         <module>parent</module>

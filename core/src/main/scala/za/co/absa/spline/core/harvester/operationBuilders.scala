@@ -19,9 +19,12 @@ package za.co.absa.spline.core.harvester
 import java.util.UUID.randomUUID
 
 import com.databricks.spark.xml.XmlRelation
+import org.apache.spark.sql.catalyst.catalog.{CatalogTable, HiveTableRelation}
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, SortOrder, Attribute => SparkAttribute}
 import org.apache.spark.sql.catalyst.plans.logical._
-import org.apache.spark.sql.execution.datasources.{DataSource, HadoopFsRelation, LogicalRelation}
+import org.apache.spark.sql.execution.command.DataWritingCommand
+import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, InsertIntoHadoopFsRelationCommand, LogicalRelation}
+import org.apache.spark.sql.hive.execution.InsertIntoHiveTable
 import org.apache.spark.sql.sources.BaseRelation
 import org.apache.spark.sql.{JDBCRelation, SaveMode}
 import za.co.absa.spline.coresparkadapterapi.{SaveAsTableCommand, SaveJDBCCommand, WriteCommand}
@@ -108,6 +111,84 @@ class ReadNodeBuilder
   }
 }
 
+class HiveRelationNodeBuilder
+(val operation: HiveTableRelation)
+(implicit val componentCreatorFactory: ComponentCreatorFactory)
+  extends OperationNodeBuilder {
+  this: FSAwareBuilder =>
+
+  override def build(): op.HiveRelation = {
+    val info = TableInfo.getTableInfo(operation.tableMeta)
+    op.HiveRelation(
+      operationProps,
+      "HiveTable",
+      info
+    )
+  }
+
+}
+
+object TableInfo {
+  def getTableInfo(catalogTable: CatalogTable): HiveTable = {
+    val identifer = catalogTable.identifier
+
+    val tableName = identifer.table
+    val database = identifer.database.getOrElse("default")
+    val tableType = catalogTable.tableType.name + "_TABLE"
+
+    val storage = catalogTable.storage
+    val inputFormat = storage.inputFormat
+    val outputFormat = storage.outputFormat
+    val compressed = storage.compressed
+    val location = storage.locationUri.getOrElse("").toString
+    val owner = catalogTable.owner
+    val comment = catalogTable.comment
+    val columns = catalogTable.schema.fields.map(s => HiveColumn(randomUUID, s.name, s.dataType.typeName, owner))
+    val sd = HiveStorage(randomUUID(),
+      location,
+      compressed,
+      inputFormat.getOrElse(""),
+      outputFormat.getOrElse(""),
+      database, tableName)
+    val db = HiveDatabase(randomUUID(), database)
+    HiveTable(randomUUID, tableName, owner, comment.getOrElse(""), tableType, db, sd, columns)
+  }
+}
+
+class InsertIntoTableNodeBuilder
+(val operation: DataWritingCommand, val writeMetrics: Map[String, Long], val readMetrics: Map[String, Long])
+(implicit val componentCreatorFactory: ComponentCreatorFactory)
+  extends OperationNodeBuilder with RootNode {
+  this: FSAwareBuilder =>
+
+  override def build(): op.InsertIntoTable = {
+    val (table: Option[HiveTable], path: Option[String], append: Boolean) = operation match {
+      case ir: InsertIntoHadoopFsRelationCommand =>
+        if (ir.catalogTable.nonEmpty) {
+          (Some(TableInfo.getTableInfo(ir.catalogTable.get)), None, ir.mode == SaveMode.Append)
+        } else {
+          (None, Some(ir.outputPath.toString), ir.mode == SaveMode.Append)
+        }
+      case it: InsertIntoHiveTable =>
+        (Some(TableInfo.getTableInfo(it.table)), None, it.overwrite)
+      case _ => (None,None,false)
+    }
+    op.InsertIntoTable(
+      operationProps,
+      if (path.nonEmpty) "file" else "table",
+      path.getOrElse(null),
+      append,
+      writeMetrics,
+      readMetrics,
+      table.getOrElse(null)
+    )
+  }
+
+  override def ignoreLineageWrite: Boolean = {
+    false
+  }
+}
+
 abstract class WriteNodeBuilder
 (val operation: WriteCommand, val writeMetrics: Map[String, Long], val readMetrics: Map[String, Long])
 (implicit val componentCreatorFactory: ComponentCreatorFactory)
@@ -125,7 +206,7 @@ abstract class WriteNodeBuilder
     readMetrics = readMetrics
   )
 
-  override def ignoreLineageWrite:Boolean = {
+  override def ignoreLineageWrite: Boolean = {
     writeMetrics.get("numFiles").filter(0.==).isDefined
   }
 }
@@ -146,10 +227,11 @@ class SaveAsTableNodeBuilder
     readMetrics = readMetrics
   )
 
-  override def ignoreLineageWrite:Boolean = {
+  override def ignoreLineageWrite: Boolean = {
     false
   }
 }
+
 
 class SaveJDBCCommandNodeBuilder
 (val operation: SaveJDBCCommand, val writeMetrics: Map[String, Long], val readMetrics: Map[String, Long])
@@ -167,13 +249,13 @@ class SaveJDBCCommandNodeBuilder
     readMetrics = readMetrics
   )
 
-  override def ignoreLineageWrite:Boolean = {
+  override def ignoreLineageWrite: Boolean = {
     false
   }
 }
 
 trait RootNode {
-  def ignoreLineageWrite:Boolean
+  def ignoreLineageWrite: Boolean
 }
 
 class ProjectionNodeBuilder

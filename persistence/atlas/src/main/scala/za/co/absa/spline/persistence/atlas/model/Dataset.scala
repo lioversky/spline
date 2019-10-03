@@ -16,9 +16,11 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import org.apache.atlas.AtlasClient
-import org.apache.atlas.v1.model.instance.{Id, Referenceable}
 import java.util.UUID
+
+import org.apache.atlas.AtlasClient
+import org.apache.atlas.`type`.AtlasTypeUtil
+import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 import scala.collection.JavaConverters._
 
@@ -36,7 +38,7 @@ class Dataset(
   attributes: Seq[Id],
   datasetType: String = SparkDataTypes.Dataset,
   childProperties: Map[String, AnyRef] = Map.empty
-) extends Referenceable(
+) extends AtlasEntity(
   datasetType,
   new java.util.HashMap[String, Object]{
     put(AtlasClient.NAME, name)
@@ -47,8 +49,8 @@ class Dataset(
 ) with QualifiedEntity
 
 
-import EndpointDirection._
-import EndpointType._
+import za.co.absa.spline.persistence.atlas.model.EndpointDirection._
+import za.co.absa.spline.persistence.atlas.model.EndpointType._
 
 /**
   * The class represents an initial or final data set.
@@ -64,7 +66,7 @@ class EndpointDataset(
   name : String,
   qualifiedName: UUID,
   attributes: Seq[Id],
-  val endpoint : Referenceable,
+  val endpoint : AtlasEntity,
   endpointType : EndpointType,
   val direction : EndpointDirection,
   format : String
@@ -74,9 +76,11 @@ class EndpointDataset(
   attributes,
   SparkDataTypes.EndpointDataset,
   Map(
-    "endpoint" -> endpoint,
+    "endpoint" -> AtlasTypeUtil.getAtlasObjectId(endpoint),
     "endpointType" -> endpointType.toString,
     "direction" -> direction.toString,
     "format" -> format
   )
-) with QualifiedEntity
+) with QualifiedEntity{
+
+}

@@ -20,7 +20,7 @@ import java.util.UUID
 
 import salat.annotations.{Persist, Salat}
 import za.co.absa.spline.model.expr.Expression
-import za.co.absa.spline.model.{MetaDataSource, TypedMetaDataSource}
+import za.co.absa.spline.model.{HiveTable, MetaDataSource, TypedMetaDataSource}
 
 /**
   * The case class represents node properties that are common for all node types.
@@ -76,6 +76,9 @@ object Operation {
       case op@Join(mp, _, _) => op.copy(mainProps = fn(mp))
       case op@Union(mp) => op.copy(mainProps = fn(mp))
       case op@Projection(mp, _) => op.copy(mainProps = fn(mp))
+      case op@HiveRelation(mp, sourceType, table) => op.copy(mainProps = fn(mp), sourceType, table)
+      case op@InsertIntoTable(mp, destinationType, path, append, writeMetrics, readMetrics, table) =>
+        op.copy(mainProps = fn(mp),destinationType, path, append, writeMetrics, readMetrics, table)
       case op@Composite(mp, _, _, _, _, _) => op.copy(mainProps = fn(mp))
     }).asInstanceOf[T]
   }
@@ -228,6 +231,29 @@ case class Read(
       s"Hence the size 'inputs' collection should be the same as the count of known datasets for 'sources' field. " +
       s"But was $inputDatasetsCount and $knownSourceLineagesCount respectively")
 }
+
+/**
+ * The case class represents Spark read data from hive and read table info.
+ * @param mainProps
+ * @param sourceType
+ * @param table HiveTable
+ */
+case class HiveRelation(
+                         mainProps: OperationProps,
+                         sourceType: String,
+                         table:HiveTable
+                       ) extends Operation {
+
+}
+
+
+case class InsertIntoTable(mainProps: OperationProps,
+                           destinationType: String,
+                           path:String,
+                           append: Boolean,
+                           writeMetrics: Map[String, Long],
+                           readMetrics: Map[String, Long],
+                           table:HiveTable)extends Operation
 
 /**
   * The case class represents a partial data lineage at its boundary level.

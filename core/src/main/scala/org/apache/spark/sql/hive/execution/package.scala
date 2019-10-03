@@ -1,5 +1,3 @@
-package za.co.absa.spline.model
-
 /*
  * Copyright 2017 ABSA Group Limited
  *
@@ -15,14 +13,12 @@ package za.co.absa.spline.model
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-class LinkedLineage(linked: DataLineage, val original: DataLineage)
-  extends DataLineage(
-    linked.appId,
-    linked.appName,
-    linked.timestamp,
-    linked.sparkVer,
-    linked.metrics,
-    linked.operations,
-    linked.datasets,
-    linked.attributes,
-    linked.dataTypes)
+
+package org.apache.spark.sql.hive
+
+/**
+ * Create by hongxun on 2019/10/2
+ */
+package object execution {
+  type  HiveTableScanExecType = org.apache.spark.sql.hive.execution.HiveTableScanExec
+}

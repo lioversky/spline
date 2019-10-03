@@ -18,11 +18,12 @@ package za.co.absa.spline.persistence.atlas
 
 import java.util.UUID.randomUUID
 
+import org.apache.atlas.ApplicationProperties
 import org.apache.atlas.`type`.AtlasType
 import org.scalatest.{FlatSpec, Matchers}
 import za.co.absa.spline.model._
-import za.co.absa.spline.model.op._
 import za.co.absa.spline.model.dt.Simple
+import za.co.absa.spline.model.op._
 import za.co.absa.spline.persistence.atlas.conversion.DataLineageToTypeSystemConverter
 
 class DataLineageToTypeSystemMapperSpec extends FlatSpec with Matchers {
@@ -56,6 +57,7 @@ class DataLineageToTypeSystemMapperSpec extends FlatSpec with Matchers {
       "TestApp",
       1L,
       "SparkVersion",
+      Map(),
       operations,
       datasets,
       attributes,
@@ -63,7 +65,7 @@ class DataLineageToTypeSystemMapperSpec extends FlatSpec with Matchers {
     )
 
     // Act
-    val entities = DataLineageToTypeSystemConverter.convert(lineage)
+    val entities = DataLineageToTypeSystemConverter.convert(lineage, ApplicationProperties.get)
     val jsonObjects = entities.map(AtlasType.toV1Json)
 
     // Assert

@@ -17,7 +17,7 @@
 package za.co.absa.spline.persistence.atlas.model
 
 import org.apache.atlas.AtlasClient
-import org.apache.atlas.v1.model.instance.{Id, Referenceable}
+import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 import scala.collection.JavaConverters._
 
@@ -37,24 +37,28 @@ class Job(
   id: String,
   name: String,
   qualifiedName: String,
+  metrics: Map[String,Long],
   operations: Seq[Id],
   datasets: Seq[Id],
   inputDatasets: Seq[Id],
   outputDatasets: Seq[Id],
   inputEndpoints: Seq[Id],
-  outputEndpoints: Seq[Id]
+  outputEndpoints: Seq[Id],
+  process:Id
 
-)extends Referenceable(
+)extends AtlasEntity(
     SparkDataTypes.Job,
     new java.util.HashMap[String, Object]{
       put("id" ,id)
       put(AtlasClient.NAME, name)
       put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName)
+      put("process",process)
       put("operations", operations.asJava)
       put("datasets", datasets.asJava)
       put("inputDatasets", inputDatasets.asJava)
       put("outputDatasets", outputDatasets.asJava)
-      put("inputs", inputEndpoints.asJava)
-      put("outputs", outputEndpoints.asJava)
+      put("metrics", metrics.asJava)
+//      put("inputs", inputEndpoints.asJava)
+//      put("outputs", outputEndpoints.asJava)
     }
   )

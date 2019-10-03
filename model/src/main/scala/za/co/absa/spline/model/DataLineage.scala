@@ -39,6 +39,7 @@ case class DataLineage
   appName: String,
   timestamp: Long,
   sparkVer: String,
+  metrics: Map[String, Long],
   operations: Seq[Operation],
   datasets: Seq[MetaDataset],
   attributes: Seq[Attribute],
@@ -80,8 +81,8 @@ case class DataLineage
 
 object DataLineage {
   private def rectify(lineage: DataLineage): DataLineage = {
+    val metrics = lineage.metrics
     val operations = lineage.operations
-
     val datasets = {
       val datasetIds =
         (operations.flatMap(_.mainProps.inputs)
@@ -136,6 +137,7 @@ object DataLineage {
     }
 
     lineage.copy(
+      metrics = metrics,
       operations = operations,
       datasets = datasets,
       attributes = attributes,

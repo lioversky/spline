@@ -16,57 +16,88 @@
 
 package za.co.absa.spline.persistence.atlas.conversion
 
-import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.{Date, UUID}
 
-import org.apache.atlas.v1.model.instance.{Id, Referenceable}
+import org.apache.atlas.`type`.AtlasTypeUtil
+import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
+import org.apache.commons.configuration.Configuration
 import za.co.absa.spline.model.DataLineage
-import za.co.absa.spline.persistence.atlas.model._
+import za.co.absa.spline.persistence.atlas.model.{EndpointDataset, HasReferredEntities, _}
 
 /**
-  * The object is responsible for conversion of a [[za.co.absa.spline.model.DataLineage Spline lineage model]] to Atlas entities.
-  */
+ * The object is responsible for conversion of a [[za.co.absa.spline.model.DataLineage Spline lineage model]] to Atlas entities.
+ */
 object DataLineageToTypeSystemConverter {
+  val ATLAS_CLUSTER_NAME = "atlas.cluster.name"
 
   /**
-    * The method converts a [[za.co.absa.spline.model.DataLineage Spline lineage model]] to Atlas entities.
-    * @param lineage An input Spline lineage model
-    * @return Atlas entities
-    */
-  def convert(lineage: DataLineage): Seq[Referenceable] = {
+   * The method converts a [[za.co.absa.spline.model.DataLineage Spline lineage model]] to Atlas entities.
+   *
+   * @param lineage An input Spline lineage model
+   * @return Atlas entities
+   */
+  def convert(lineage: DataLineage, atlasProperties: Configuration): Seq[AtlasEntity] = {
     val dataTypes = DataTypeConverter.convert(lineage.dataTypes)
     val dataTypeIdMap = toIdMap(dataTypes)
-    val dataTypeIdAndNameMap = dataTypes.map(i => i.qualifiedName -> (i.getId, i.name)).toMap
+    val dataTypeIdAndNameMap = dataTypes.map(i => i.qualifiedName -> (AtlasTypeUtil.getAtlasObjectId(i), i.name)).toMap
     val attributes = AttributeConverter.convert(lineage.attributes, dataTypeIdAndNameMap)
     val attributesIdMap = toIdMap(attributes)
-    val dataSets = DatasetConverter.convert(lineage, dataTypeIdMap, attributesIdMap)
+    val clusterName = atlasProperties.getString(ATLAS_CLUSTER_NAME, "primary")
+    val dataSets = DatasetConverter.convert(lineage, dataTypeIdMap, attributesIdMap, clusterName)
+
     val dataSetIdMap = toIdMap(dataSets)
     val splineAttributesMap = lineage.attributes.map(i => i.id -> i).toMap
     val expressionConverter = new ExpressionConverter(splineAttributesMap, dataTypeIdMap)
+    //    val (dbEntitySeq, tableEntitySeq, sdEntitySeq, columnEntitySeq) = HiveEntityConverter.convert(lineage)
+
+    //    val hiveTableIdMap = tableEntitySeq.map(t=> t.asInstanceOf[HiveTable].uuid -> t.getId).toMap
     val operations = new OperationConverter(expressionConverter).convert(lineage, dataSetIdMap, attributesIdMap, dataTypeIdMap)
-    val process = createProcess(lineage, operations, dataSets)
-    dataTypes ++ attributes ++ dataSets ++ operations :+ process
+    val processes = createProcess(lineage, operations, dataSets)
+    val ret = dataTypes ++ attributes ++ dataSets ++ operations ++ processes
+    ret ++ ret.flatMap {
+      case e: EndpointDataset =>
+        val endpoint = e.asInstanceOf[EndpointDataset].endpoint
+        endpoint.asInstanceOf[HasReferredEntities].getReferredEntities :+ endpoint
+      case h: HasReferredEntities => h.getReferredEntities
+      case _ => None
+    }
   }
 
-  private def toIdMap(collection: Seq[Referenceable with QualifiedEntity]): Map[UUID, Id] = {
-    collection.map(i => i.qualifiedName -> i.getId).toMap
-  }
+  private def toIdMap(collection: Seq[AtlasEntity with QualifiedEntity]): Map[UUID, Id] =
+    collection.map(i => i.qualifiedName -> AtlasTypeUtil.getAtlasObjectId(i)).toMap
 
-  private def createProcess(lineage: DataLineage, operations : Seq[Operation] , datasets : Seq[Dataset]) : Referenceable = {
+  private def createProcess(lineage: DataLineage, operations: Seq[Operation], datasets: Seq[AtlasEntity]): Seq[AtlasEntity] = {
     val (inputDatasets, outputDatasets) = datasets
       .filter(_.isInstanceOf[EndpointDataset])
-      .map(_.asInstanceOf[EndpointDataset])
-      .partition(_.direction == EndpointDirection.input)
+      .partition(_.asInstanceOf[EndpointDataset].direction == EndpointDirection.input)
 
-    new Job(
-      lineage.id,
-      lineage.appName,
-      lineage.id,
-      operations.map(_.getId),
-      datasets.map(_.getId),
-      inputDatasets.map(_.getId),
-      outputDatasets.map(_.getId),
-      inputDatasets.map(_.endpoint.getId),
-      outputDatasets.map(_.endpoint.getId)
+    val inputs = inputDatasets.map(_.asInstanceOf[EndpointDataset].endpoint)
+    val outputs = outputDatasets.map(_.asInstanceOf[EndpointDataset].endpoint)
+    val inputStr = inputs.map(entity => entity.getAttribute("qualifiedName")).mkString("+")
+    val outputStr = outputs.map(entity => entity.getAttribute("qualifiedName")).mkString("+")
+    val processName = s"$inputStr=>$outputStr"
+    val process = new SparkProcess(
+      processName,
+      processName,
+      null,
+      null,
+      inputDatasets.map(i => AtlasTypeUtil.getAtlasObjectId(i.asInstanceOf[EndpointDataset].endpoint)),
+      outputDatasets.map(i => AtlasTypeUtil.getAtlasObjectId(i.asInstanceOf[EndpointDataset].endpoint))
     )
+    val job = new Job(
+      lineage.appId,
+      lineage.appName + ":" + new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss").format(new Date),
+      lineage.id,
+      lineage.metrics,
+      operations.map(AtlasTypeUtil.getAtlasObjectId),
+      datasets.map(AtlasTypeUtil.getAtlasObjectId),
+      inputDatasets.map(AtlasTypeUtil.getAtlasObjectId),
+      outputDatasets.map(AtlasTypeUtil.getAtlasObjectId),
+      Seq(),
+      Seq(),
+      AtlasTypeUtil.getAtlasObjectId(process)
+    )
+    Seq(process, job)
   }
 }

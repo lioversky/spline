@@ -17,7 +17,8 @@
 package za.co.absa.spline.persistence.atlas.model
 
 import org.apache.atlas.AtlasClient
-import org.apache.atlas.v1.model.instance.{Id, Referenceable}
+import org.apache.atlas.`type`.AtlasTypeUtil
+import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId}
 
 import scala.collection.JavaConverters._
 
@@ -32,8 +33,8 @@ case class OperationCommonProperties
 (
   name : String,
   qualifiedName: String,
-  inputs: Seq[Id],
-  outputs: Seq[Id]
+  inputs: Seq[AtlasObjectId],
+  outputs: Seq[AtlasObjectId]
 )
 
 /**
@@ -46,7 +47,7 @@ class Operation(
   commonProperties: OperationCommonProperties,
   operationType: String = SparkDataTypes.Operation,
   childProperties : Map[String, Object] = Map.empty
-) extends Referenceable(
+) extends AtlasEntity(
   operationType,
   new java.util.HashMap[String, Object]() {
     put(AtlasClient.NAME, commonProperties.name)
@@ -87,11 +88,20 @@ class JoinOperation(
   {
     val extraParameters = Map("joinType" -> joinType)
     condition match {
-      case Some(c) =>  extraParameters + ("condition" -> c)
+      case Some(c) =>  extraParameters + ("condition" -> AtlasTypeUtil.getAtlasObjectId(c))
       case None => extraParameters
     }
   }
-)
+)with HasReferredEntities{
+  override def getReferredEntities: List[AtlasEntity] = {
+    condition match {
+      case Some(c) =>
+       c.asInstanceOf[AtlasEntity] +: c.asInstanceOf[HasReferredEntities].getReferredEntities
+      case None => Nil
+    }
+
+  }
+}
 
 /**
   * The class represents Spark filter (where) operation.
@@ -104,8 +114,12 @@ class FilterOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.FilterOperation,
-  Map("condition" -> condition)
-)
+  Map("condition" -> AtlasTypeUtil.getAtlasObjectId(condition))
+) with HasReferredEntities{
+  override def getReferredEntities: List[AtlasEntity] = {
+    condition.asInstanceOf[AtlasEntity] +: condition.asInstanceOf[HasReferredEntities].getReferredEntities
+  }
+}
 
 /**
   * The class represents Spark projective operations (select, drop, withColumn, etc.)
@@ -119,8 +133,12 @@ class ProjectOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.ProjectOperation,
-  Map("transformations" -> transformations.asJava)
-)
+  Map("transformations" -> AtlasTypeUtil.getAtlasObjectIds(transformations.map(_.asInstanceOf[AtlasEntity]).asJava))
+) with HasReferredEntities{
+  override def getReferredEntities: List[AtlasEntity] = {
+    transformations.map(_.asInstanceOf[AtlasEntity]).toList ++ transformations.flatMap(_.asInstanceOf[HasReferredEntities].getReferredEntities)
+  }
+}
 
 /**
   * The class represents Spark alias (as) operation for assigning a label to data set.
@@ -149,21 +167,25 @@ class SortOrder(
   expression: Expression,
   direction: String,
   nullOrder: String
-) extends Referenceable(
+) extends AtlasEntity(
   SparkDataTypes.SortOrder,
   new java.util.HashMap[String, Object]() {
     put(AtlasClient.NAME, expression.commonProperties.text)
     put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName)
-    put("expression", expression)
+    put("expression", AtlasTypeUtil.getAtlasObjectId(expression))
     put("direction", direction)
     put("nullOrder", nullOrder)
   }
-)
+) with HasReferredEntities{
+  override def getReferredEntities: List[AtlasEntity] = {
+    List(expression) ++ expression.asInstanceOf[HasReferredEntities].getReferredEntities
+  }
+}
 
 /**
   * The class represents Spark sort operation.
   *
-  * @param commonProps Common node properties
+  * @param commonProperties Common node properties
   * @param orders Sort orders
   */
 class SortOperation(
@@ -205,3 +227,23 @@ class WriteOperation(
   SparkDataTypes.WriteOperation,
   Map("appendMode" -> Boolean.box(append))
 )
+
+class HiveRelationOperation(
+  commonProperties: OperationCommonProperties) extends Operation(
+  commonProperties,
+  SparkDataTypes.Operation,
+  Map()
+)
+
+class InsertIntoTableOperation(
+  commonProperties: OperationCommonProperties,
+  append: Boolean,
+  writeMetrics: Map[String, Long],
+  readMetrics: Map[String, Long]
+) extends Operation(
+  commonProperties,
+  SparkDataTypes.WriteOperation,
+  Map("appendMode" -> Boolean.box(append)
+  )
+)
+

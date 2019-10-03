@@ -18,9 +18,9 @@ package za.co.absa.spline.persistence.atlas.conversion
 
 import java.util.UUID
 
-import org.apache.atlas.v1.model.instance.Id
-import za.co.absa.spline.{model => splineModel}
+import org.apache.atlas.model.instance.{AtlasObjectId => Id}
 import za.co.absa.spline.persistence.atlas.{model => atlasModel}
+import za.co.absa.spline.{model => splineModel}
 
 /**
   * The object is responsible for conversion of [[za.co.absa.spline.model.Attribute Spline attributes]] to [[za.co.absa.spline.persistence.atlas.model.Attribute Atlas attributes]].

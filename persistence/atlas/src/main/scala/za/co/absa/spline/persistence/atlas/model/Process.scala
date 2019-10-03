@@ -16,24 +16,28 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import java.util.UUID
-
 import org.apache.atlas.AtlasClient
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
+import scala.collection.JavaConverters._
 
 /**
-  * The class represents at attribute of a Spark data set.
-  * @param name A name
-  * @param qualifiedName An unique identifier
-  * @param dataType A data type identified by its id and name
-  */
-class Attribute(val name : String, val qualifiedName: UUID, dataType : (Id, String)) extends AtlasEntity(
-  SparkDataTypes.Attribute,
-  new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName.toString)
-    put("type", dataType._2)
-    put("typeRef", dataType._1)
+ * Create by hongxun on 2019/9/24
+ */
+class SparkProcess(
+               name: String,
+               qualifiedName: String,
+               currUser: String,
+               details: String,
+               inputs: Seq[Id],
+               outputs: Seq[Id]
+             ) extends AtlasEntity(
+  SparkDataTypes.SparkProcess,
+  new java.util.HashMap[String, Object] {
+    put("name", name)
+    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName)
+    put("details", details)
+    put("inputs", inputs.asJava)
+    put("outputs", outputs.asJava)
   }
-) with QualifiedEntity
+)

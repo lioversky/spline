@@ -18,9 +18,10 @@ package za.co.absa.spline.persistence.atlas.conversion
 
 import java.util.UUID
 
-import org.apache.atlas.v1.model.instance.Referenceable
-import za.co.absa.spline.{model => splineModel}
+import org.apache.atlas.`type`.AtlasTypeUtil
+import org.apache.atlas.model.instance.AtlasEntity
 import za.co.absa.spline.persistence.atlas.{model => atlasModel}
+import za.co.absa.spline.{model => splineModel}
 
 /**
   * The class is responsible for conversion of [[splineModel.dt.DataType Spline data types]] to [[za.co.absa.spline.persistence.atlas.model.DataType Atlas data types]].
@@ -32,13 +33,13 @@ object DataTypeConverter {
     * @param splineTypes Spline data types to be converted
     * @return Atlas data types
     */
-  def convert(splineTypes: Seq[splineModel.dt.DataType]): Seq[Referenceable with atlasModel.DataType] = {
+  def convert(splineTypes: Seq[splineModel.dt.DataType]): Seq[AtlasEntity with atlasModel.DataType] = {
     val atlasTypes = splineTypes.map{
       case splineModel.dt.Simple(id, name, nullable) => new atlasModel.SimpleDataType(name, id, nullable)
       case splineModel.dt.Struct(id, fields, nullable) => new atlasModel.StructDataType(convert(fields, id), id, nullable)
       case splineModel.dt.Array(id, elementDataTypeId, nullable) => new atlasModel.ArrayDataType(elementDataTypeId, id, nullable)
     }
-    val idAndNameMapping = atlasTypes.map(i => i.qualifiedName -> (i.getId, i.name)).toMap
+    val idAndNameMapping = atlasTypes.map(i => i.qualifiedName -> (AtlasTypeUtil.getAtlasObjectId(i), i.name)).toMap
     atlasTypes.foreach(_.resolveIds(idAndNameMapping))
     atlasTypes
   }

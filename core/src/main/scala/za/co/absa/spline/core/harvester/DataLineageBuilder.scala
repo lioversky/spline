@@ -20,13 +20,19 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark
 import org.apache.spark.SparkContext
+import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
 import org.apache.spark.sql.catalyst.plans.logical._
-import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.execution.{LeafExecNode, SparkPlan}
+import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
+import org.apache.spark.sql.execution.command.{DataWritingCommand, ExecutedCommandExec}
+import org.apache.spark.sql.execution.datasources.{InsertIntoHadoopFsRelationCommand, LogicalRelation}
+import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, LocalTableScanExec, SparkPlan}
+import org.apache.spark.sql.hive.execution._
 import scalaz.Scalaz._
-import za.co.absa.spline.core.harvester.DataLineageBuilder._
+import za.co.absa.spline.core.harvester.DataLineageBuilder.{Metrics, _}
 import za.co.absa.spline.coresparkadapterapi._
 import za.co.absa.spline.model._
+import org.apache.spark.sql.hive.execution.HiveTableScanExecType
 
 class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[SparkPlan], sparkContext: SparkContext)
                         (hadoopConfiguration: Configuration, writeCommandParserFactory: WriteCommandParserFactory) {
@@ -38,12 +44,12 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
   private val tableCommandParser = writeCommandParserFactory.saveAsTableParser(clusterUrl)
   private val jdbcCommandParser = writeCommandParserFactory.jdbcParser()
 
-  def buildLineage(): Option[DataLineage] = {
+  def buildLineage(durationNs: Long): Option[DataLineage] = {
     val builders = getOperations(logicalPlan)
     val someRootBuilder = builders.lastOption
 
     val writeIgnored = someRootBuilder match {
-      case Some(rootNode:RootNode) => rootNode.ignoreLineageWrite
+      case Some(rootNode: RootNode) => rootNode.ignoreLineageWrite
       case _ => false
     }
 
@@ -52,12 +58,20 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
     writeIgnored match {
       case true => None
       case false =>
+        val (readMetrics: Map[String,Metrics], writeMetrics: Metrics) = getMetrics()
+        val readMap = readMetrics.map{ case (s, metric) => metric.map { case (k, v) => (s"$s.$k", v) } }
+        val emptyMap :Metrics = Map.empty
+        val read = readMap.foldLeft(emptyMap)((result, metrics) => result |+| metrics)
+        //        val read = readMetrics.flatMap { case (s, metric) => metric.map { case (k, v) => (s"$s.$k", v) } }
+        val write = writeMetrics.map { case (k, v) => (s"write.$k", v) }
+        val duration = Map("durationMs" -> durationNs / 1000000)
         Some(
           DataLineage(
             sparkContext.applicationId,
             sparkContext.appName,
             System.currentTimeMillis(),
             spark.SPARK_VERSION,
+            read ++ write ++ duration,
             operations.reverse,
             componentCreatorFactory.metaDatasetConverter.values.reverse,
             componentCreatorFactory.attributeConverter.values,
@@ -67,7 +81,7 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
     }
   }
 
-    private def getOperations(rootOp: LogicalPlan): Seq[OperationNodeBuilder] = {
+  private def getOperations(rootOp: LogicalPlan): Seq[OperationNodeBuilder] = {
     def traverseAndCollect(
                             accBuilders: Seq[OperationNodeBuilder],
                             processedEntries: Map[LogicalPlan, OperationNodeBuilder],
@@ -108,7 +122,7 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
       }
     }
 
-      traverseAndCollect(Nil, Map.empty, Seq((rootOp, null)))
+    traverseAndCollect(Nil, Map.empty, Seq((rootOp, null)))
   }
 
   private def createOperationBuilder(op: LogicalPlan): OperationNodeBuilder = {
@@ -121,24 +135,29 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
       case s: Sort => new SortNodeBuilder(s)
       case s: Aggregate => new AggregateNodeBuilder(s)
       case a: SubqueryAlias => new AliasNodeBuilder(a)
+      case hr: HiveTableRelation => new HiveRelationNodeBuilder(hr) with HDFSAwareBuilder
       case lr: LogicalRelation => new ReadNodeBuilder(lr) with HDFSAwareBuilder
+      case _: InsertIntoHadoopFsRelationCommand | _: InsertIntoHiveTable =>
+        //        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
+        new InsertIntoTableNodeBuilder(op.asInstanceOf[DataWritingCommand], null, null) with HDFSAwareBuilder
+
       case wc if jdbcCommandParser.matches(op) =>
-        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
+        //        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
         val tableCmd = jdbcCommandParser.asWriteCommand(wc).asInstanceOf[SaveJDBCCommand]
-        new SaveJDBCCommandNodeBuilder(tableCmd, writeMetrics, readMetrics)
+        new SaveJDBCCommandNodeBuilder(tableCmd, null, null)
       case wc if writeCommandParser.matches(op) =>
-        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
+        //        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
         val writeCmd = writeCommandParser.asWriteCommand(wc).asInstanceOf[WriteCommand]
-        new WriteNodeBuilder(writeCmd, writeMetrics, readMetrics) with HDFSAwareBuilder
+        new WriteNodeBuilder(writeCmd, null, null) with HDFSAwareBuilder
       case wc if tableCommandParser.matches(op) =>
-        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
+        //        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
         val tableCmd = tableCommandParser.asWriteCommand(wc).asInstanceOf[SaveAsTableCommand]
-        new SaveAsTableNodeBuilder(tableCmd, writeMetrics, readMetrics)
+        new SaveAsTableNodeBuilder(tableCmd, null, null)
       case x => new GenericNodeBuilder(x)
     }
   }
 
-  private def getMetrics(): (Metrics, Metrics) = {
+  private def getMetrics(): (Map[String,Metrics], Metrics) = {
     executedPlanOpt.
       map(getExecutedReadWriteMetrics).
       getOrElse((Map.empty, Map.empty))
@@ -158,15 +177,27 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
 object DataLineageBuilder {
   private type Metrics = Map[String, Long]
 
-  private def getExecutedReadWriteMetrics(executedPlan: SparkPlan): (Metrics, Metrics) = {
+  private def getExecutedReadWriteMetrics(executedPlan: SparkPlan): (Map[String,Metrics], Metrics) = {
     def getNodeMetrics(node: SparkPlan): Metrics = node.metrics.mapValues(_.value)
 
-    val cumulatedReadMetrics: Metrics = {
-      def traverseAndCollect(acc: Metrics, nodes: Seq[SparkPlan]): Metrics = {
+    val cumulatedReadMetrics: Map[String,Metrics] = {
+      def traverseAndCollect(acc: Map[String,Metrics], nodes: Seq[SparkPlan]): Map[String,Metrics] = {
         nodes match {
           case Nil => acc
           case (leaf: LeafExecNode) +: queue =>
-            traverseAndCollect(acc |+| getNodeMetrics(leaf), queue)
+            val key = leaf match {
+              case f: FileSourceScanExec => {
+                f.tableIdentifier match {
+                  case Some(x) => x.toString()
+                  case None => f.relation.location.rootPaths.mkString(",")
+                }
+              }
+              case h: HiveTableScanExecType => h.relation.tableMeta.identifier.toString()
+              case e:ExecutedCommandExec => e.cmd.getClass.getName
+              case i: InMemoryTableScanExec => "InMemory." + i.relation.tableName.getOrElse("")
+              case _ => "read"
+            }
+            traverseAndCollect(acc ++ Map(key ->getNodeMetrics(leaf)), queue)
           case (node: SparkPlan) +: queue =>
             traverseAndCollect(acc, node.children ++ queue)
         }

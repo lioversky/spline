@@ -24,7 +24,7 @@
         <groupId>za.co.absa.spline</groupId>
         <artifactId>spline-parent</artifactId>
         <relativePath>../parent/pom.xml</relativePath>
-        <version>0.3.9</version>
+        <version>0.3.9-dip</version>
     </parent>
 
     <dependencies>
@@ -50,7 +50,7 @@
             <artifactId>spline-core-spark-adapter-${spark.compat.version}</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
+        <!--<dependency>
             <groupId>za.co.absa.spline</groupId>
             <artifactId>spline-persistence-mongo</artifactId>
             <version>${project.version}</version>
@@ -59,7 +59,7 @@
             <groupId>za.co.absa.spline</groupId>
             <artifactId>spline-persistence-hdfs</artifactId>
             <version>${project.version}</version>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>za.co.absa.spline</groupId>
             <artifactId>spline-persistence-atlas</artifactId>
@@ -69,6 +69,16 @@
             <groupId>com.databricks</groupId>
             <artifactId>spark-xml_${scala.compat.version}</artifactId>
             <version>0.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-xml_2.11</artifactId>
+            <version>1.0.5</version>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.39</version>
         </dependency>
     </dependencies>
     <profiles>

@@ -217,8 +217,9 @@ object ExpressionConverter {
   }
 
   private def getExpressionExtraParameters(e: SparkExpression): Option[Map[String, Any]] = {
-    val params = introspect(e).toMap
-    if (params.isEmpty) None else Some(params)
+//    val params = introspect(e).toMap
+//    if (params.isEmpty) None else Some(params)
+    None
   }
 }
 
