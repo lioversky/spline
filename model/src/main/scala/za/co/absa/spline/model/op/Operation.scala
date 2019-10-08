@@ -77,8 +77,8 @@ object Operation {
       case op@Union(mp) => op.copy(mainProps = fn(mp))
       case op@Projection(mp, _) => op.copy(mainProps = fn(mp))
       case op@HiveRelation(mp, sourceType, table) => op.copy(mainProps = fn(mp), sourceType, table)
-      case op@InsertIntoTable(mp, destinationType, path, append, writeMetrics, readMetrics, table) =>
-        op.copy(mainProps = fn(mp),destinationType, path, append, writeMetrics, readMetrics, table)
+      case op@InsertIntoTable(mp, destinationType, path, append, table) =>
+        op.copy(mainProps = fn(mp),destinationType, path, append, table)
       case op@Composite(mp, _, _, _, _, _) => op.copy(mainProps = fn(mp))
     }).asInstanceOf[T]
   }
@@ -234,8 +234,8 @@ case class Read(
 
 /**
  * The case class represents Spark read data from hive and read table info.
- * @param mainProps
- * @param sourceType
+ * @param mainProps Common node properties
+ * @param sourceType hive table
  * @param table HiveTable
  */
 case class HiveRelation(
@@ -243,16 +243,20 @@ case class HiveRelation(
                          sourceType: String,
                          table:HiveTable
                        ) extends Operation {
-
 }
 
-
+/**
+ * The case class represents Spark write data to hive and table info.
+ * @param mainProps Common node properties
+ * @param destinationType file or table
+ * @param path A path to the place where data set will be stored
+ * @param append `true` for "APPEND" write mode, `false` otherwise.
+ * @param table table info when destinationType is `table`.
+ */
 case class InsertIntoTable(mainProps: OperationProps,
                            destinationType: String,
                            path:String,
                            append: Boolean,
-                           writeMetrics: Map[String, Long],
-                           readMetrics: Map[String, Long],
                            table:HiveTable)extends Operation
 
 /**

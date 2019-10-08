@@ -139,7 +139,7 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
       case lr: LogicalRelation => new ReadNodeBuilder(lr) with HDFSAwareBuilder
       case _: InsertIntoHadoopFsRelationCommand | _: InsertIntoHiveTable =>
         //        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()
-        new InsertIntoTableNodeBuilder(op.asInstanceOf[DataWritingCommand], null, null) with HDFSAwareBuilder
+        new InsertIntoTableNodeBuilder(op.asInstanceOf[DataWritingCommand]) with HDFSAwareBuilder
 
       case wc if jdbcCommandParser.matches(op) =>
         //        val (readMetrics: Metrics, writeMetrics: Metrics) = getMetrics()

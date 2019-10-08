@@ -21,14 +21,48 @@ import java.util.UUID
 /**
  * Create by hongxun on 2019/9/19
  */
+
+/**
+ * The case class represents a hive table metadata descriptor
+ * @param id An unique identifier
+ * @param name table name
+ * @param owner table owner
+ * @param comment table comment
+ * @param tableType table type
+ * @param db belong to database
+ * @param sd storage descriptor
+ * @param columns table columns
+ */
 case class HiveTable(id: UUID, name: String, owner: String,
                      comment: String, tableType: String,
                      db: HiveDatabase, sd: HiveStorage, columns: Seq[HiveColumn])
 
+/**
+ * The case class represents Database descriptor
+ * @param id An unique identifier
+ * @param name Database name
+ */
 case class HiveDatabase(id: UUID, name: String)
 
+/**
+ *
+ * @param id An unique identifier
+ * @param name column name
+ * @param dataType column data type
+ * @param owner table owner
+ */
 case class HiveColumn(id: UUID, name: String, dataType: String, owner: String)
 
+/**
+ * The case class represents a column descriptor
+ * @param id An unique identifier
+ * @param location table storage location
+ * @param compressed table is compressed
+ * @param inputFormat table input format
+ * @param outputFormat table output format
+ * @param databaseName Database name
+ * @param tableName table name
+ */
 case class HiveStorage(id: UUID, location: String, compressed: Boolean,
                        inputFormat: String, outputFormat: String,
-                       db: String, table: String)
+                       databaseName: String, tableName: String)

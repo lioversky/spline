@@ -156,7 +156,7 @@ object TableInfo {
 }
 
 class InsertIntoTableNodeBuilder
-(val operation: DataWritingCommand, val writeMetrics: Map[String, Long], val readMetrics: Map[String, Long])
+(val operation: DataWritingCommand)
 (implicit val componentCreatorFactory: ComponentCreatorFactory)
   extends OperationNodeBuilder with RootNode {
   this: FSAwareBuilder =>
@@ -178,8 +178,6 @@ class InsertIntoTableNodeBuilder
       if (path.nonEmpty) "file" else "table",
       path.getOrElse(null),
       append,
-      writeMetrics,
-      readMetrics,
       table.getOrElse(null)
     )
   }

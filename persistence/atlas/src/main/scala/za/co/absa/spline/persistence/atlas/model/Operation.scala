@@ -228,6 +228,10 @@ class WriteOperation(
   Map("appendMode" -> Boolean.box(append))
 )
 
+/**
+ * The class represents Spark operations for read data from hive.
+ * @param commonProperties Common properties of all operation types
+ */
 class HiveRelationOperation(
   commonProperties: OperationCommonProperties) extends Operation(
   commonProperties,
@@ -235,11 +239,14 @@ class HiveRelationOperation(
   Map()
 )
 
+/**
+ * The class represents Spark operations for write data to hive or hdfs.
+ * @param commonProperties Common properties of all operation types
+ * @param append `true` for "APPEND" write mode, `false` otherwise.
+ */
 class InsertIntoTableOperation(
   commonProperties: OperationCommonProperties,
-  append: Boolean,
-  writeMetrics: Map[String, Long],
-  readMetrics: Map[String, Long]
+  append: Boolean
 ) extends Operation(
   commonProperties,
   SparkDataTypes.WriteOperation,

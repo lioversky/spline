@@ -45,8 +45,8 @@ class OperationConverter(expressionConverter: ExpressionConverter) {
       )
       o match {
         case op.Write(_, _, _, append, _, _) => new WriteOperation(commonProperties, append)
-        case op.InsertIntoTable(_, dt, path, append, writeMetrics, readMetrics, table) =>
-          new InsertIntoTableOperation(commonProperties, append, writeMetrics, readMetrics)
+        case op.InsertIntoTable(_, dt, path, append, table) =>
+          new InsertIntoTableOperation(commonProperties, append)
         case op.Sort(_, orders) =>
           val atlasOrders = orders.zipWithIndex.map{
             case (op.SortOrder(expression, direction, nullOrder), i) =>
@@ -68,7 +68,7 @@ class OperationConverter(expressionConverter: ExpressionConverter) {
         case op.Projection(_, t) => new ProjectOperation(commonProperties, t.zipWithIndex.map(j => expressionConverter.convert(commonProperties.qualifiedName + "@" + j._2, j._1)))
         case op.Alias(_, a) => new AliasOperation(commonProperties, a)
         case op.Generic(_, r) => new GenericOperation(commonProperties, r)
-        case op.HiveRelation(mainProps, sourceType, table)=> new HiveRelationOperation(commonProperties)
+        case op.HiveRelation(_, _, _)=> new HiveRelationOperation(commonProperties)
         case _ => new Operation(commonProperties)
       }
     }

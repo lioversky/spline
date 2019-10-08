@@ -21,7 +21,7 @@ import java.util.UUID.randomUUID
 import org.apache.atlas.ApplicationProperties
 import org.apache.atlas.`type`.AtlasType
 import org.scalatest.{FlatSpec, Matchers}
-import za.co.absa.spline.model._
+import za.co.absa.spline.model.{op, _}
 import za.co.absa.spline.model.dt.Simple
 import za.co.absa.spline.model.op._
 import za.co.absa.spline.persistence.atlas.conversion.DataLineageToTypeSystemConverter
@@ -31,7 +31,7 @@ class DataLineageToTypeSystemMapperSpec extends FlatSpec with Matchers {
   "A simple lineage graph with several nodes" should "be serializable to JSON via Atlas API" in {
     // Arrange
     val types = Seq(Simple("StringType", nullable = true))
-    val attributes =  Seq(
+    val attributes = Seq(
       Attribute(randomUUID, "_1", types(0).id),
       Attribute(randomUUID, "_2", types(0).id),
       Attribute(randomUUID, "_3", types(0).id)
@@ -43,21 +43,30 @@ class DataLineageToTypeSystemMapperSpec extends FlatSpec with Matchers {
       MetaDataset(randomUUID, schema),
       MetaDataset(randomUUID, schema),
       MetaDataset(randomUUID, schema),
+      MetaDataset(randomUUID, schema),
+      MetaDataset(randomUUID, schema),
       MetaDataset(randomUUID, schema)
     )
 
-    val operations = Seq(
-      Generic(OperationProps(randomUUID, "Union", Seq(datasets(1).id, datasets(2).id), datasets(0).id), "generic1"),
-      Generic(OperationProps(randomUUID, "Filter", Seq(datasets(3).id), datasets(1).id), "generic2"),
-      Generic(OperationProps(randomUUID, "LogicalRDD", Seq.empty, datasets(3).id), "generic3"),
-      Generic(OperationProps(randomUUID, "Filter", Seq(datasets(3).id), datasets(2).id), "generic4")
+    val columns = attributes.map(s => HiveColumn(randomUUID, s.name, "String", "user"))
+    val sd = HiveStorage(randomUUID(), "/tmp/hive", false, "", "", "default", "test")
+    val db = HiveDatabase(randomUUID(), "default")
+    val hiveTable = HiveTable(randomUUID, "test", "", "comment", "MANAGED", db, sd, columns)
+
+    val operations: Seq[Operation] = Seq(
+      InsertIntoTable(OperationProps(randomUUID, "InsertIntoTable", Seq(datasets(1).id), datasets(0).id), "table", null, true, hiveTable),
+      Generic(OperationProps(randomUUID, "Union", Seq(datasets(3).id, datasets(2).id), datasets(1).id), "generic1"),
+      Generic(OperationProps(randomUUID, "Filter", Seq(datasets(5).id), datasets(3).id), "generic2"),
+      Generic(OperationProps(randomUUID, "Filter", Seq(datasets(4).id), datasets(2).id), "generic4"),
+      Generic(OperationProps(randomUUID, "LogicalRDD", Seq.empty, datasets(4).id), "generic3"),
+      HiveRelation(OperationProps(randomUUID, "HiveRelation", Seq.empty, datasets(5).id), "HiveTable", hiveTable)
     )
     val lineage = DataLineage(
       randomUUID.toString,
       "TestApp",
       1L,
       "SparkVersion",
-      Map(),
+      Map.empty,
       operations,
       datasets,
       attributes,
@@ -66,7 +75,7 @@ class DataLineageToTypeSystemMapperSpec extends FlatSpec with Matchers {
 
     // Act
     val entities = DataLineageToTypeSystemConverter.convert(lineage, ApplicationProperties.get)
-    val jsonObjects = entities.map(AtlasType.toV1Json)
+    val jsonObjects = entities.map(AtlasType.toJson)
 
     // Assert
     entities.length shouldEqual jsonObjects.length

@@ -56,7 +56,7 @@ object DatasetConverter {
         }
         case op.Write(_, dt, path, _, _, _) =>
           new EndpointDataset(name, qualifiedName, attributes, new FileEndpoint(path, path), EndpointType.file, EndpointDirection.output, dt)
-        case InsertIntoTable(_, dt, path, _, _, _, table) =>
+        case InsertIntoTable(_, dt, path, _, table) =>
           dt match {
             case "table" =>
               val tableEntity = getTableEntity(table, clusterName)
