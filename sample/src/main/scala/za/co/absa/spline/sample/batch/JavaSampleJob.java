@@ -22,7 +22,7 @@ import za.co.absa.spline.core.SparkLineageInitializer;
 
 public class JavaSampleJob {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         SparkSession.Builder builder = SparkSession.builder();
         SparkSession session = builder.appName("java sample app").master("local[*]").getOrCreate();
         // configure Spline to track lineage
@@ -31,9 +31,13 @@ public class JavaSampleJob {
             .option("header", "true")
             .option("inferSchema", "true")
             .csv("data/input/batch/wikidata.csv")
-            .as("source")
+            .createOrReplaceTempView("source");
+
+            session.sql("select sum(c) as c,sum(n) as n from (select domain_code,count(1) as c,case when domain_code='aa' then 1 else 0 end as n from source group by domain_code) t")
             .write()
             .mode(SaveMode.Overwrite)
             .csv("data/output/batch/java-sample.csv");
+
+            Thread.sleep(Integer.MAX_VALUE);
     }
 }

@@ -16,7 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import org.apache.atlas.AtlasClient
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId}
 
@@ -50,8 +49,8 @@ class Operation(
 ) extends AtlasEntity(
   operationType,
   new java.util.HashMap[String, Object]() {
-    put(AtlasClient.NAME, commonProperties.name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, commonProperties.qualifiedName)
+    put("name", commonProperties.name)
+    put("qualifiedName", commonProperties.qualifiedName)
     put("inputs", commonProperties.inputs.asJava)
     put("outputs", commonProperties.outputs.asJava)
     childProperties.foreach(i => put(i._1, i._2))
@@ -170,8 +169,8 @@ class SortOrder(
 ) extends AtlasEntity(
   SparkDataTypes.SortOrder,
   new java.util.HashMap[String, Object]() {
-    put(AtlasClient.NAME, expression.commonProperties.text)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName)
+    put("name", expression.commonProperties.text)
+    put("qualifiedName", qualifiedName)
     put("expression", AtlasTypeUtil.getAtlasObjectId(expression))
     put("direction", direction)
     put("nullOrder", nullOrder)

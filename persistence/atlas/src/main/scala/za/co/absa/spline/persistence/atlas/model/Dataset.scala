@@ -16,9 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import java.util.UUID
-
-import org.apache.atlas.AtlasClient
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
@@ -34,15 +31,15 @@ import scala.collection.JavaConverters._
   */
 class Dataset(
   val name : String,
-  val qualifiedName: UUID,
+  val qualifiedName: String,
   attributes: Seq[Id],
   datasetType: String = SparkDataTypes.Dataset,
   childProperties: Map[String, AnyRef] = Map.empty
 ) extends AtlasEntity(
   datasetType,
   new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName.toString)
+    put("name", name)
+    put("qualifiedName", qualifiedName.toString)
     put("attributes", attributes.asJava)
     childProperties.foreach(i => put(i._1,i._2))
   }
@@ -64,7 +61,7 @@ import za.co.absa.spline.persistence.atlas.model.EndpointType._
   */
 class EndpointDataset(
   name : String,
-  qualifiedName: UUID,
+  qualifiedName: String,
   attributes: Seq[Id],
   val endpoint : AtlasEntity,
   endpointType : EndpointType,

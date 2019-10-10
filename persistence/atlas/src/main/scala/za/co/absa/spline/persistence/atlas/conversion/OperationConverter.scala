@@ -16,8 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.conversion
 
-import java.util.UUID
-
 import org.apache.atlas.model.instance.AtlasObjectId
 import za.co.absa.spline.model.{DataLineage, op}
 import za.co.absa.spline.persistence.atlas.model._
@@ -35,13 +33,13 @@ class OperationConverter(expressionConverter: ExpressionConverter) {
     * @param dataTypeIdMap  A mapping from Spline data type ids to ids assigned by Atlas API.
     * @return Atlas operations
     */
-  def convert(lineage: DataLineage, dataSetIdMap : Map[UUID, AtlasObjectId], attributeIdMap: Map[UUID, AtlasObjectId], dataTypeIdMap: Map[UUID, AtlasObjectId]) : Seq[Operation] = {
+  def convert(lineage: DataLineage, dataSetIdMap : Map[String, AtlasObjectId], attributeIdMap: Map[String, AtlasObjectId], dataTypeIdMap: Map[String, AtlasObjectId]) : Seq[Operation] = {
     lineage.operations.map{ o =>
       val commonProperties = OperationCommonProperties(
         o.mainProps.name,
         o.mainProps.id.toString,
-        o.mainProps.inputs.map(i => dataSetIdMap(i)),
-        Seq(dataSetIdMap(o.mainProps.output))
+        o.mainProps.inputs.map(i => dataSetIdMap(i.toString)),
+        Seq(dataSetIdMap(o.mainProps.output.toString))
       )
       o match {
         case op.Write(_, _, _, append, _, _) => new WriteOperation(commonProperties, append)

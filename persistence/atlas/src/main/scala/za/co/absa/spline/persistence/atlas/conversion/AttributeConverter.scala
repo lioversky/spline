@@ -16,8 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.conversion
 
-import java.util.UUID
-
 import org.apache.atlas.model.instance.{AtlasObjectId => Id}
 import za.co.absa.spline.persistence.atlas.{model => atlasModel}
 import za.co.absa.spline.{model => splineModel}
@@ -33,7 +31,7 @@ object AttributeConverter {
     * @param dataTypeIdAnNameMap A mapping from Spline data type ids to ids assigned by Atlas API and attribute names.
     * @return Atlas attributes
     */
-  def convert(splineAttributes : Seq[splineModel.Attribute], dataTypeIdAnNameMap: Map[UUID, (Id, String)]): Seq[atlasModel.Attribute] = splineAttributes.map{
-    case splineModel.Attribute(id, name, dataTypeId) => new atlasModel.Attribute(name, id, dataTypeIdAnNameMap(dataTypeId))
+  def convert(splineAttributes : Seq[splineModel.Attribute], dataTypeIdAnNameMap: Map[String, (Id, String)]): Seq[atlasModel.Attribute] = splineAttributes.map{
+    case splineModel.Attribute(id, name, dataTypeId) => new atlasModel.Attribute(name, id.toString, dataTypeIdAnNameMap(dataTypeId.toString))
   }
 }

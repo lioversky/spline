@@ -16,15 +16,13 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import java.util.UUID
-
 import org.apache.atlas.model.instance.AtlasEntity
 
 /**
   * The trait represents a lineage entity that can be identified by UUID.
   */
 trait QualifiedEntity {
-  def qualifiedName: UUID
+  def qualifiedName: String
 }
 
 trait HasReferredEntities {

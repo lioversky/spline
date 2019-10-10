@@ -16,8 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.conversion
 
-import java.util.UUID
-
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.AtlasEntity
 import za.co.absa.spline.persistence.atlas.{model => atlasModel}
@@ -35,20 +33,20 @@ object DataTypeConverter {
     */
   def convert(splineTypes: Seq[splineModel.dt.DataType]): Seq[AtlasEntity with atlasModel.DataType] = {
     val atlasTypes = splineTypes.map{
-      case splineModel.dt.Simple(id, name, nullable) => new atlasModel.SimpleDataType(name, id, nullable)
-      case splineModel.dt.Struct(id, fields, nullable) => new atlasModel.StructDataType(convert(fields, id), id, nullable)
-      case splineModel.dt.Array(id, elementDataTypeId, nullable) => new atlasModel.ArrayDataType(elementDataTypeId, id, nullable)
+      case splineModel.dt.Simple(id, name, nullable) => new atlasModel.SimpleDataType(name, id.toString, nullable)
+      case splineModel.dt.Struct(id, fields, nullable) => new atlasModel.StructDataType(convert(fields, id.toString), id.toString, nullable)
+      case splineModel.dt.Array(id, elementDataTypeId, nullable) => new atlasModel.ArrayDataType(elementDataTypeId.toString, id.toString, nullable)
     }
     val idAndNameMapping = atlasTypes.map(i => i.qualifiedName -> (AtlasTypeUtil.getAtlasObjectId(i), i.name)).toMap
     atlasTypes.foreach(_.resolveIds(idAndNameMapping))
     atlasTypes
   }
 
-  private def convert(structFields: Seq[splineModel.dt.StructField], typeQualifiedName: UUID): Seq[atlasModel.StructField] = {
+  private def convert(structFields: Seq[splineModel.dt.StructField], typeQualifiedName: String): Seq[atlasModel.StructField] = {
     structFields.map{
       case splineModel.dt.StructField(name, dataTypeId) =>
         val qn = s"${typeQualifiedName}_field@$name"
-        new atlasModel.StructField(name, qn, dataTypeId)
+        new atlasModel.StructField(name, qn, dataTypeId.toString)
     }
   }
 }

@@ -16,9 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import java.util.UUID
-
-import org.apache.atlas.AtlasClient
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId}
 
 import scala.collection.JavaConverters._
@@ -36,14 +33,14 @@ trait DataType extends QualifiedEntity{
   /**
     * An unique identifier
     */
-  val qualifiedName : UUID
+  val qualifiedName : String
 
   /**
     * A flag describing whether the type is nullable or not
     */
   val nullable: Boolean
 
-  def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = {}
+  def resolveIds(splineToAtlasIdAndNameMapping: Map[String, (AtlasObjectId, String)]): Unit = {}
 }
 
 /**
@@ -52,11 +49,11 @@ trait DataType extends QualifiedEntity{
   * @param qualifiedName An unique identifier
   * @param nullable A flag describing whether the type is nullable or not
   */
-class SimpleDataType(val name : String, val qualifiedName : UUID, val nullable: Boolean) extends AtlasEntity  (
+class SimpleDataType(val name : String, val qualifiedName : String, val nullable: Boolean) extends AtlasEntity  (
   SparkDataTypes.SimpleDataType,
   new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName.toString)
+    put("name", name)
+    put("qualifiedName", s"name=$name;nullable=${nullable}" )
     put("nullable", Boolean.box(nullable))
   }
 ) with DataType
@@ -67,11 +64,11 @@ class SimpleDataType(val name : String, val qualifiedName : UUID, val nullable: 
   * @param qualifiedName An unique identifier
   * @param nullable A flag describing whether the type is nullable or not
   */
-class StructDataType(fields: Seq[StructField], val qualifiedName : UUID, val nullable: Boolean) extends AtlasEntity(
+class StructDataType(fields: Seq[StructField], val qualifiedName : String, val nullable: Boolean) extends AtlasEntity(
   SparkDataTypes.StructDataType,
   new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, "struct")
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName.toString)
+    put("name", "struct")
+    put("qualifiedName", s"fields=${fields.mkString(",")};nullable=${nullable}")
     put("nullable", Boolean.box(nullable))
     put("fields", fields.asJava)
   }
@@ -79,7 +76,7 @@ class StructDataType(fields: Seq[StructField], val qualifiedName : UUID, val nul
 {
   val name = "struct"
 
-  override def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = fields.foreach(_.resolveIds(splineToAtlasIdAndNameMapping))
+  override def resolveIds(splineToAtlasIdAndNameMapping: Map[String, (AtlasObjectId, String)]): Unit = fields.foreach(_.resolveIds(splineToAtlasIdAndNameMapping))
 }
 
 /**
@@ -88,14 +85,14 @@ class StructDataType(fields: Seq[StructField], val qualifiedName : UUID, val nul
   * @param qualifiedName An unique identifier
   * @param dataType A data type of the sub-attribute (element)
   */
-class StructField(name: String, qualifiedName: String, dataType: UUID) extends AtlasEntity(
+class StructField(name: String, qualifiedName: String, dataType: String) extends AtlasEntity(
   SparkDataTypes.StructField,
   new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName)
+    put("name", name)
+    put("qualifiedName", qualifiedName)
   }
 ){
-  def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = {
+  def resolveIds(splineToAtlasIdAndNameMapping: Map[String, (AtlasObjectId, String)]): Unit = {
     val (id, name) = splineToAtlasIdAndNameMapping(dataType)
     setAttribute("type", name)
     setAttribute("typeRef", id)
@@ -108,18 +105,18 @@ class StructField(name: String, qualifiedName: String, dataType: UUID) extends A
   * @param qualifiedName An unique identifier
   * @param nullable A flag describing whether the type is nullable or not
   */
-class ArrayDataType(elementDataType: UUID, val qualifiedName : UUID, val nullable: Boolean) extends AtlasEntity(
+class ArrayDataType(elementDataType: String, val qualifiedName : String, val nullable: Boolean) extends AtlasEntity(
   SparkDataTypes.ArrayDataType,
   new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, "array")
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName.toString)
+    put("name", "array")
+    put("qualifiedName", qualifiedName.toString)
     put("nullable", Boolean.box(nullable))
   }
 ) with DataType
 {
   val name = "array"
 
-  override def resolveIds(splineToAtlasIdAndNameMapping: Map[UUID, (AtlasObjectId, String)]): Unit = {
+  override def resolveIds(splineToAtlasIdAndNameMapping: Map[String, (AtlasObjectId, String)]): Unit = {
     val (id, _) = splineToAtlasIdAndNameMapping(elementDataType)
     setAttribute("elementType", id)
   }

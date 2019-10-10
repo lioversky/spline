@@ -47,7 +47,7 @@ object DataLineageToTypeSystemConverter {
     val dataSets = DatasetConverter.convert(lineage, dataTypeIdMap, attributesIdMap, clusterName)
 
     val dataSetIdMap = toIdMap(dataSets)
-    val splineAttributesMap = lineage.attributes.map(i => i.id -> i).toMap
+    val splineAttributesMap = lineage.attributes.map(i => i.id.toString -> i).toMap
     val expressionConverter = new ExpressionConverter(splineAttributesMap, dataTypeIdMap)
     //    val (dbEntitySeq, tableEntitySeq, sdEntitySeq, columnEntitySeq) = HiveEntityConverter.convert(lineage)
 
@@ -64,7 +64,7 @@ object DataLineageToTypeSystemConverter {
     }
   }
 
-  private def toIdMap(collection: Seq[AtlasEntity with QualifiedEntity]): Map[UUID, Id] =
+  private def toIdMap(collection: Seq[AtlasEntity with QualifiedEntity]): Map[String, Id] =
     collection.map(i => i.qualifiedName -> AtlasTypeUtil.getAtlasObjectId(i)).toMap
 
   private def createProcess(lineage: DataLineage, operations: Seq[Operation], datasets: Seq[AtlasEntity]): Seq[AtlasEntity] = {

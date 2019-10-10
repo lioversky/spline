@@ -16,9 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import java.util.UUID
-
-import org.apache.atlas.AtlasClient
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
@@ -54,8 +51,8 @@ class Expression(
 ) extends AtlasEntity (
   entityType,
   new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, commonProperties.text)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, commonProperties.qualifiedName)
+    put("name", commonProperties.text)
+    put("qualifiedName", commonProperties.qualifiedName)
     put("text", commonProperties.text)
     put("expressionType", commonProperties.expressionType)
     put("dataType", commonProperties.dataType)
@@ -64,8 +61,13 @@ class Expression(
   }
 ) with HasReferredEntities{
   override def getReferredEntities: List[AtlasEntity] = {
-    val childEntities = commonProperties.children.map(_.asInstanceOf[AtlasEntity]).toList
-    childEntities.flatMap { case h: HasReferredEntities => h.getReferredEntities } ++ childEntities
+    def referred(leases: List[Expression], expressions: List[Expression]): List[Expression] = {
+      expressions match {
+        case Nil => leases
+        case expression +: others => referred(leases++ expression.getReferredEntities.map(_.asInstanceOf[Expression]) , others)
+      }
+    }
+    referred(Nil, commonProperties.children.toList) ++ commonProperties.children.toList
   }
 }
 
@@ -108,7 +110,7 @@ class BinaryExpression
 class AttributeReferenceExpression
 (
   commonProperties: ExpressionCommonProperties,
-  attributeId: UUID,
+  attributeId: String,
   attributeName: String
 ) extends Expression(
   commonProperties,

@@ -28,7 +28,7 @@ import za.co.absa.spline.persistence.atlas.model._
   * @param attributeMap A map with all attributes with the current lineage accessible via their unique ids
   * @param dataTypeIdMap A mapping from Spline data type ids to ids assigned by Atlas API.
   */
-class ExpressionConverter(attributeMap : Map[UUID, za.co.absa.spline.model.Attribute], dataTypeIdMap: Map[UUID, Id]) {
+class ExpressionConverter(attributeMap : Map[String, za.co.absa.spline.model.Attribute], dataTypeIdMap: Map[String, Id]) {
 
   /**
     * The method converts [[za.co.absa.spline.model.expr.Expression Spline expression]] to [[za.co.absa.spline.persistence.atlas.model.Expression Atlas expression]].
@@ -43,13 +43,13 @@ class ExpressionConverter(attributeMap : Map[UUID, za.co.absa.spline.model.Attri
       qualifiedName,
       getText(expression),
       getExpressionType(expression),
-      dataTypeIdMap(getTypeUUID(expression)),
+      dataTypeIdMap(getTypeUUID(expression).toString),
       children
     )
 
     expression match {
       case expr.Binary(symbol, _, _) => new BinaryExpression(mainProperties, symbol)
-      case expr.AttrRef(attributeId) => new AttributeReferenceExpression(mainProperties, attributeId, getText(expression))
+      case expr.AttrRef(attributeId) => new AttributeReferenceExpression(mainProperties, attributeId.toString, getText(expression))
       case expr.Alias(alias, _) => new AliasExpression(mainProperties, alias)
       case expr.UDF(name, _, _) => new UserDefinedFunctionExpression(mainProperties, name)
       case _ => new Expression(mainProperties)
@@ -61,7 +61,7 @@ class ExpressionConverter(attributeMap : Map[UUID, za.co.absa.spline.model.Attri
     case expr.Binary(_, dataTypeId, _) => dataTypeId
     case expr.Alias(_, child) => getTypeUUID(child)
     case expr.UDF(_, dataTypeId, _) => dataTypeId
-    case expr.AttrRef(refId) => attributeMap(refId).dataTypeId
+    case expr.AttrRef(refId) => attributeMap(refId.toString).dataTypeId
     case expr.Generic(_, dataTypeId, _, _, _) => dataTypeId
     case expr.GenericLeaf(_, dataTypeId, _, _) => dataTypeId
   }
@@ -86,7 +86,7 @@ class ExpressionConverter(attributeMap : Map[UUID, za.co.absa.spline.model.Attri
       s"${getOperandText(children(0))} $symbol ${getOperandText(children(1))}"
     case expr.Alias(alias, child) => s"${getText(child)} AS $alias"
     case expr.UDF(name, _, children) => s"UDF:$name(${children.map(getText).mkString(", ")})"
-    case expr.AttrRef(refId) => attributeMap.get(refId).map(_.name).getOrElse("")
+    case expr.AttrRef(refId) => attributeMap.get(refId.toString).map(_.name).getOrElse("")
     case expr.GenericLeaf(name, _, _, _) => name
     case expr.Generic(name, _, children, _, _) =>
       val childrenText = children.map(getText).mkString(", ")

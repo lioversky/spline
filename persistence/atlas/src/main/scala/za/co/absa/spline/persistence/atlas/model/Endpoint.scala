@@ -16,9 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import java.util.UUID
-
-import org.apache.atlas.AtlasClient
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
@@ -50,8 +47,8 @@ object EndpointType extends Enumeration {
 class FileEndpoint(val path: String, uri: String) extends AtlasEntity(
   SparkDataTypes.FileEndpoint,
   new java.util.HashMap[String, Object] {
-    put(AtlasClient.NAME, path)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, uri)
+    put("name", path)
+    put("qualifiedName", uri)
     put("path", path)
   }
 ) with HasReferredEntities {
@@ -60,13 +57,13 @@ class FileEndpoint(val path: String, uri: String) extends AtlasEntity(
 
 class HiveDatabase(name: String, clusterName: String) extends AtlasEntity(
   "hive_db", new java.util.HashMap[String, Object] {
-    put(AtlasClient.NAME, name)
+    put("name", name)
     put("clusterName", clusterName)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$name@$clusterName")
+    put("qualifiedName", s"$name@$clusterName")
   }
 )
 
-class HiveTable(val uuid: UUID,
+class HiveTable(val uuid: String,
                 name: String,
                 db: String,
                 owner: String,
@@ -79,8 +76,8 @@ class HiveTable(val uuid: UUID,
                ) extends AtlasEntity(
   "hive_table",
   new java.util.HashMap[String, Object] {
-    put(AtlasClient.NAME, name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$db.$name@$clusterName")
+    put("name", name)
+    put("qualifiedName", s"$db.$name@$clusterName")
     put("comment", comment)
     put("owner", owner)
     put("tableType", tableType)
@@ -106,8 +103,8 @@ class HiveTable(val uuid: UUID,
 
 class HiveColumn(name: String, dataType: String, owner: String, db: String, table: String, tableId: Id, clusterName: String) extends AtlasEntity(
   "hive_column", new java.util.HashMap[String, Object] {
-    put(AtlasClient.NAME, name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$db.$table.$name@$clusterName")
+    put("name", name)
+    put("qualifiedName", s"$db.$table.$name@$clusterName")
     put("type", dataType)
     put("owner", owner)
     put("table", tableId)
@@ -119,7 +116,7 @@ class HiveStorage(location: String, compressed: Boolean,
                   db: String, table: String, tableId: Id,
                   clusterName: String) extends AtlasEntity(
   "hive_storagedesc", new java.util.HashMap[String, Object] {
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, s"$db.$table@${clusterName}_storage")
+    put("qualifiedName", s"$db.$table@${clusterName}_storage")
     put("location", location)
     put("compressed", compressed.toString)
     put("inputFormat", inputFormat)

@@ -16,9 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import java.util.UUID
-
-import org.apache.atlas.AtlasClient
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 
@@ -28,11 +25,11 @@ import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
   * @param qualifiedName An unique identifier
   * @param dataType A data type identified by its id and name
   */
-class Attribute(val name : String, val qualifiedName: UUID, dataType : (Id, String)) extends AtlasEntity(
+class Attribute(val name : String, val qualifiedName: String, dataType : (Id, String)) extends AtlasEntity(
   SparkDataTypes.Attribute,
   new java.util.HashMap[String, Object]{
-    put(AtlasClient.NAME, name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName.toString)
+    put("name", name)
+    put("qualifiedName", qualifiedName.toString)
     put("type", dataType._2)
     put("typeRef", dataType._1)
   }

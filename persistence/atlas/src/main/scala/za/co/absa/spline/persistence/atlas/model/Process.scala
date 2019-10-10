@@ -35,7 +35,7 @@ class SparkProcess(
   SparkDataTypes.SparkProcess,
   new java.util.HashMap[String, Object] {
     put("name", name)
-    put(AtlasClient.REFERENCEABLE_ATTRIBUTE_NAME, qualifiedName)
+    put("qualifiedName", qualifiedName)
     put("details", details)
     put("inputs", inputs.asJava)
     put("outputs", outputs.asJava)
