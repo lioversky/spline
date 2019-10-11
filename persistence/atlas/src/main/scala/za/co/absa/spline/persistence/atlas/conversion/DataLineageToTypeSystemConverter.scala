@@ -67,6 +67,13 @@ object DataLineageToTypeSystemConverter {
   private def toIdMap(collection: Seq[AtlasEntity with QualifiedEntity]): Map[String, Id] =
     collection.map(i => i.qualifiedName -> AtlasTypeUtil.getAtlasObjectId(i)).toMap
 
+  /**
+   * Spark unique lineage for process, Execution information for each job
+   * @param lineage An input Spline lineage model
+   * @param operations Spark job operations
+   * @param datasets Spark job datasets
+   * @return Process and job entities
+   */
   private def createProcess(lineage: DataLineage, operations: Seq[Operation], datasets: Seq[AtlasEntity]): Seq[AtlasEntity] = {
     val (inputDatasets, outputDatasets) = datasets
       .filter(_.isInstanceOf[EndpointDataset])
@@ -74,7 +81,7 @@ object DataLineageToTypeSystemConverter {
 
     val inputs = inputDatasets.map(_.asInstanceOf[EndpointDataset].endpoint)
     val outputs = outputDatasets.map(_.asInstanceOf[EndpointDataset].endpoint)
-    val inputStr = inputs.map(entity => entity.getAttribute("qualifiedName")).mkString("+")
+    val inputStr = inputs.map(entity => entity.getAttribute("qualifiedName")).toSet.mkString("+")
     val outputStr = outputs.map(entity => entity.getAttribute("qualifiedName")).mkString("+")
     val processName = s"$inputStr=>$outputStr"
     val process = new SparkProcess(
@@ -85,10 +92,12 @@ object DataLineageToTypeSystemConverter {
       inputDatasets.map(i => AtlasTypeUtil.getAtlasObjectId(i.asInstanceOf[EndpointDataset].endpoint)),
       outputDatasets.map(i => AtlasTypeUtil.getAtlasObjectId(i.asInstanceOf[EndpointDataset].endpoint))
     )
+
     val job = new Job(
       lineage.appId,
-      lineage.appName + ":" + new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss").format(new Date),
+      lineage.appName + ":" + new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss").format(new Date(lineage.timestamp)),
       lineage.id,
+      lineage.timestamp,
       lineage.metrics,
       operations.map(AtlasTypeUtil.getAtlasObjectId),
       datasets.map(AtlasTypeUtil.getAtlasObjectId),

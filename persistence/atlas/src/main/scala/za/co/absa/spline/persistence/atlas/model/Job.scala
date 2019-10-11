@@ -25,6 +25,7 @@ import scala.collection.JavaConverters._
   * @param id An identifier
   * @param name A Spark application name
   * @param qualifiedName An uniquie identifier
+  * @param timestamp Spark job end time
   * @param operations A sequence of operations defining computation logic of the job
   * @param datasets A sequence of intermediate results with the job
   * @param inputDatasets Input data
@@ -36,6 +37,7 @@ class Job(
   id: String,
   name: String,
   qualifiedName: String,
+  timestamp:Long,
   metrics: Map[String,Long],
   operations: Seq[Id],
   datasets: Seq[Id],
@@ -51,6 +53,7 @@ class Job(
       put("id" ,id)
       put("name", name)
       put("qualifiedName", qualifiedName)
+      put("endTime",timestamp)
       put("process",process)
       put("operations", operations.asJava)
       put("datasets", datasets.asJava)
