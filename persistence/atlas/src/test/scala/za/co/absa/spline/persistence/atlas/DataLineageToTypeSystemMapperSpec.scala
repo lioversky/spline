@@ -65,6 +65,7 @@ class DataLineageToTypeSystemMapperSpec extends FlatSpec with Matchers {
       randomUUID.toString,
       "TestApp",
       1L,
+      0l,
       "SparkVersion",
       Map.empty,
       operations,
