@@ -29,6 +29,7 @@ import za.co.absa.spline.model.op.{ExpressionAware, Operation}
   * @param appId      An unique identifier of the application run
   * @param appName    A name of the Spark application
   * @param timestamp  A timestamp describing when the application was executed
+  * @param durationNs A job duration value that spark executed
   * @param operations A sequence of nodes representing the data lineage graph
   * @param datasets   A sequence of data sets produced or consumed by operations
   * @param attributes A sequence of attributes contained in schemas of data sets
@@ -38,6 +39,7 @@ case class DataLineage
   appId: String,
   appName: String,
   timestamp: Long,
+  durationNs:Long,
   sparkVer: String,
   metrics: Map[String, Long],
   operations: Seq[Operation],
@@ -81,6 +83,7 @@ case class DataLineage
 
 object DataLineage {
   private def rectify(lineage: DataLineage): DataLineage = {
+    val durationNs = lineage.durationNs
     val metrics = lineage.metrics
     val operations = lineage.operations
     val datasets = {
@@ -137,6 +140,7 @@ object DataLineage {
     }
 
     lineage.copy(
+      durationNs = durationNs,
       metrics = metrics,
       operations = operations,
       datasets = datasets,

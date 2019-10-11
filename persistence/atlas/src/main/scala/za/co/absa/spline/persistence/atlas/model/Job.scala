@@ -38,6 +38,7 @@ class Job(
   name: String,
   qualifiedName: String,
   timestamp:Long,
+  durationNs:Long,
   metrics: Map[String,Long],
   operations: Seq[Id],
   datasets: Seq[Id],
@@ -50,11 +51,12 @@ class Job(
 )extends AtlasEntity(
     SparkDataTypes.Job,
     new java.util.HashMap[String, Object]{
-      put("id" ,id)
+      put("id", id)
       put("name", name)
       put("qualifiedName", qualifiedName)
-      put("endTime",timestamp)
-      put("process",process)
+      put("endTime", Long.box(timestamp))
+      put("durationNs", Long.box(durationNs))
+      put("process", process)
       put("operations", operations.asJava)
       put("datasets", datasets.asJava)
       put("inputDatasets", inputDatasets.asJava)

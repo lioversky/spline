@@ -64,14 +64,14 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
         val read = readMap.foldLeft(emptyMap)((result, metrics) => result |+| metrics)
         //        val read = readMetrics.flatMap { case (s, metric) => metric.map { case (k, v) => (s"$s.$k", v) } }
         val write = writeMetrics.map { case (k, v) => (s"write.$k", v) }
-        val duration = Map("durationMs" -> durationNs / 1000000)
         Some(
           DataLineage(
             sparkContext.applicationId,
             sparkContext.appName,
             System.currentTimeMillis(),
+            durationNs / 1000000,
             spark.SPARK_VERSION,
-            read ++ write ++ duration,
+            read ++ write ,
             operations.reverse,
             componentCreatorFactory.metaDatasetConverter.values.reverse,
             componentCreatorFactory.attributeConverter.values,
