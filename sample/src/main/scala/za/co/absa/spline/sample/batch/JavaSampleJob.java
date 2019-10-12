@@ -16,6 +16,8 @@
 
 package za.co.absa.spline.sample.batch;
 
+import org.apache.spark.api.java.function.ForeachFunction;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import za.co.absa.spline.core.SparkLineageInitializer;
@@ -33,11 +35,16 @@ public class JavaSampleJob {
             .csv("data/input/batch/wikidata.csv")
             .createOrReplaceTempView("source");
 
-            session.sql("select sum(c) as c,sum(n) as n from (select domain_code,count(1) as c,case when domain_code='aa' then 1 else 0 end as n from source group by domain_code) t")
-            .write()
-            .mode(SaveMode.Overwrite)
-            .csv("data/output/batch/java-sample.csv");
+            session.sql("select * from (select domain_code,count(1) as c,case when domain_code='aa' then 1 else 0 end as n from source group by domain_code) t")
+//            .write()
+//            .mode(SaveMode.Overwrite)
+//            .csv("data/output/batch/java-sample.csv");
 
-            Thread.sleep(Integer.MAX_VALUE);
+        .foreach(new ForeachFunction<Row>() {
+            public void call(Row row) throws Exception {
+                System.out.println(row.toString());
+            }
+        });
+
     }
 }

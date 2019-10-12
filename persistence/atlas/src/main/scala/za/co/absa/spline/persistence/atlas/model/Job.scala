@@ -38,7 +38,7 @@ class Job(
   name: String,
   qualifiedName: String,
   timestamp:Long,
-  durationNs:Long,
+  durationMs:Long,
   metrics: Map[String,Long],
   operations: Seq[Id],
   datasets: Seq[Id],
@@ -55,7 +55,7 @@ class Job(
       put("name", name)
       put("qualifiedName", qualifiedName)
       put("endTime", Long.box(timestamp))
-      put("durationNs", Long.box(durationNs))
+      put("durationMs", Long.box(durationMs))
       put("process", process)
       put("operations", operations.asJava)
       put("datasets", datasets.asJava)

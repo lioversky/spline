@@ -98,7 +98,7 @@ object DataLineageToTypeSystemConverter {
       lineage.appName + ":" + new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss").format(new Date(lineage.timestamp)),
       lineage.id,
       lineage.timestamp,
-      lineage.durationNs,
+      lineage.durationMs,
       lineage.metrics,
       operations.map(AtlasTypeUtil.getAtlasObjectId),
       datasets.map(AtlasTypeUtil.getAtlasObjectId),

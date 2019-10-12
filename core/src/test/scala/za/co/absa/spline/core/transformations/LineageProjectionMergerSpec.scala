@@ -464,7 +464,7 @@ object LineageProjectionMergerSpec {
       appId = "",
       appName = "",
       timestamp = -1,
-      durationNs = 0,
+      durationMs = 0,
       sparkVer = spark.SPARK_VERSION,
       operations = operations,
       metrics = Map.empty,

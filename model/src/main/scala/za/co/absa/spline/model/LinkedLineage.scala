@@ -20,7 +20,7 @@ class LinkedLineage(linked: DataLineage, val original: DataLineage)
     linked.appId,
     linked.appName,
     linked.timestamp,
-    linked.durationNs,
+    linked.durationMs,
     linked.sparkVer,
     linked.metrics,
     linked.operations,
