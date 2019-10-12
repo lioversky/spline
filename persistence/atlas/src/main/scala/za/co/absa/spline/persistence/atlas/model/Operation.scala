@@ -209,8 +209,16 @@ class AggregateOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.AggregateOperation,
-  Map("groupings" -> groupings.asJava, "aggregations" -> aggregations.asJava)
-)
+  Map("groupings" -> AtlasTypeUtil.getAtlasObjectIds(groupings.map(_.asInstanceOf[AtlasEntity]).asJava) ,
+    "aggregations" -> AtlasTypeUtil.getAtlasObjectIds(aggregations.map(_.asInstanceOf[AtlasEntity]).asJava)
+  )
+) with HasReferredEntities {
+  override def getReferredEntities: List[AtlasEntity] = {
+    val groupingsList = groupings.map(_.asInstanceOf[AtlasEntity]).toList ++ groupings.flatMap(_.asInstanceOf[HasReferredEntities].getReferredEntities)
+    val aggregationsList = aggregations.map(_.asInstanceOf[AtlasEntity]).toList ++ aggregations.flatMap(_.asInstanceOf[HasReferredEntities].getReferredEntities)
+    groupingsList ++ aggregationsList
+  }
+}
 
 /**
   * The class represents Spark operations for persisting data sets to HDFS, Hive etc. Operations are usually performed via DataFrameWriters.
