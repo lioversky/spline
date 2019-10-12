@@ -54,6 +54,8 @@
         <module>sample</module>
         <module>persistence</module>
         <module>integration-tests</module>
+        <module>embedded/embedded-2.3</module>
+        <module>embedded/embedded-2.4</module>
     </modules>
 
     <profiles>
