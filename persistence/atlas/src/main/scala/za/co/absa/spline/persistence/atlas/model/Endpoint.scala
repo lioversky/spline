@@ -56,7 +56,7 @@ class FileEndpoint(val path: String, uri: String) extends AtlasEntity(
 }
 
 class HiveDatabase(name: String, clusterName: String) extends AtlasEntity(
-  "hive_db", new java.util.HashMap[String, Object] {
+  SparkDataTypes.HiveDB, new java.util.HashMap[String, Object] {
     put("name", name)
     put("clusterName", clusterName)
     put("qualifiedName", s"$name@$clusterName")
@@ -74,7 +74,7 @@ class HiveTable(val uuid: String,
                 var storage: HiveStorage = null,
                 var columns: Seq[HiveColumn] = null
                ) extends AtlasEntity(
-  "hive_table",
+  SparkDataTypes.HiveTable,
   new java.util.HashMap[String, Object] {
     put("name", name)
     put("qualifiedName", s"$db.$name@$clusterName")
@@ -102,7 +102,7 @@ class HiveTable(val uuid: String,
 }
 
 class HiveColumn(name: String, dataType: String, owner: String, db: String, table: String, tableId: Id, clusterName: String) extends AtlasEntity(
-  "hive_column", new java.util.HashMap[String, Object] {
+  SparkDataTypes.HiveColumn, new java.util.HashMap[String, Object] {
     put("name", name)
     put("qualifiedName", s"$db.$table.$name@$clusterName")
     put("type", dataType)
@@ -115,7 +115,7 @@ class HiveStorage(location: String, compressed: Boolean,
                   inputFormat: String, outputFormat: String,
                   db: String, table: String, tableId: Id,
                   clusterName: String) extends AtlasEntity(
-  "hive_storagedesc", new java.util.HashMap[String, Object] {
+  SparkDataTypes.HiveSD, new java.util.HashMap[String, Object] {
     put("qualifiedName", s"$db.$table@${clusterName}_storage")
     put("location", location)
     put("compressed", compressed.toString)
