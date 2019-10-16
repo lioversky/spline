@@ -36,15 +36,15 @@ public class JavaSampleJob {
             .createOrReplaceTempView("source");
 
             session.sql("select * from (select domain_code,count(1) as c,case when domain_code='aa' then 1 else 0 end as n from source group by domain_code) t")
-//            .write()
-//            .mode(SaveMode.Overwrite)
-//            .csv("data/output/batch/java-sample.csv");
+            .write()
+            .mode(SaveMode.Overwrite)
+            .csv("data/output/batch/java-sample.csv");
 
-        .foreach(new ForeachFunction<Row>() {
-            public void call(Row row) throws Exception {
-                System.out.println(row.toString());
-            }
-        });
+//        .foreach(new ForeachFunction<Row>() {
+//            public void call(Row row) throws Exception {
+//                System.out.println(row.toString());
+//            }
+//        });
 
     }
 }

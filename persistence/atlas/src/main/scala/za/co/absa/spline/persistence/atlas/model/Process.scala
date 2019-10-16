@@ -16,7 +16,6 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import org.apache.atlas.AtlasClient
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 import scala.collection.JavaConverters._

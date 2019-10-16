@@ -16,7 +16,7 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import org.apache.atlas.`type`.AtlasTypeUtil
+import za.co.absa.spline.persistence.atlas.util.AtlasUtil._
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 import scala.collection.JavaConverters._
@@ -82,7 +82,7 @@ class HiveTable(val uuid: String,
     put("owner", owner)
     put("tableType", tableType)
     put("temporary", "false")
-    put("db", AtlasTypeUtil.getAtlasObjectId(database))
+    put("db", getAtlasObjectId(database))
   }
 ) with HasReferredEntities {
 
@@ -90,8 +90,8 @@ class HiveTable(val uuid: String,
   def setIds(sd: HiveStorage, columns: Seq[HiveColumn]): Unit = {
     this.storage = sd
     this.columns = columns
-    this.getAttributes.put("sd", AtlasTypeUtil.getAtlasObjectId(sd))
-    this.getAttributes.put("columns", AtlasTypeUtil.getAtlasObjectIds(columns.map(_.asInstanceOf[AtlasEntity]).asJava))
+    this.getAttributes.put("sd", getAtlasObjectId(sd))
+    this.getAttributes.put("columns", getAtlasObjectIds(columns.map(_.asInstanceOf[AtlasEntity]).asJava))
 
   }
 

@@ -16,6 +16,7 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
+import za.co.absa.spline.persistence.atlas.util.AtlasUtil._
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId}
 
@@ -87,7 +88,7 @@ class JoinOperation(
   {
     val extraParameters = Map("joinType" -> joinType)
     condition match {
-      case Some(c) =>  extraParameters + ("condition" -> AtlasTypeUtil.getAtlasObjectId(c))
+      case Some(c) =>  extraParameters + ("condition" -> getAtlasObjectId(c))
       case None => extraParameters
     }
   }
@@ -113,7 +114,7 @@ class FilterOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.FilterOperation,
-  Map("condition" -> AtlasTypeUtil.getAtlasObjectId(condition))
+  Map("condition" -> getAtlasObjectId(condition))
 ) with HasReferredEntities{
   override def getReferredEntities: List[AtlasEntity] = {
     condition.asInstanceOf[AtlasEntity] +: condition.asInstanceOf[HasReferredEntities].getReferredEntities
@@ -132,7 +133,7 @@ class ProjectOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.ProjectOperation,
-  Map("transformations" -> AtlasTypeUtil.getAtlasObjectIds(transformations.map(_.asInstanceOf[AtlasEntity]).asJava))
+  Map("transformations" -> getAtlasObjectIds(transformations.map(_.asInstanceOf[AtlasEntity]).asJava))
 ) with HasReferredEntities{
   override def getReferredEntities: List[AtlasEntity] = {
     transformations.map(_.asInstanceOf[AtlasEntity]).toList ++ transformations.flatMap(_.asInstanceOf[HasReferredEntities].getReferredEntities)
@@ -171,7 +172,7 @@ class SortOrder(
   new java.util.HashMap[String, Object]() {
     put("name", expression.commonProperties.text)
     put("qualifiedName", qualifiedName)
-    put("expression", AtlasTypeUtil.getAtlasObjectId(expression))
+    put("expression", getAtlasObjectId(expression))
     put("direction", direction)
     put("nullOrder", nullOrder)
   }
@@ -193,7 +194,7 @@ class SortOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.SortOperation,
-  Map("orders" -> orders.asJava)
+  Map("orders" -> AtlasTypeUtil.getAtlasObjectIds(orders.map(_.asInstanceOf[AtlasEntity]).asJava))
 )
 
 /**
@@ -209,8 +210,8 @@ class AggregateOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.AggregateOperation,
-  Map("groupings" -> AtlasTypeUtil.getAtlasObjectIds(groupings.map(_.asInstanceOf[AtlasEntity]).asJava) ,
-    "aggregations" -> AtlasTypeUtil.getAtlasObjectIds(aggregations.map(_.asInstanceOf[AtlasEntity]).asJava)
+  Map("groupings" -> getAtlasObjectIds(groupings.map(_.asInstanceOf[AtlasEntity]).asJava) ,
+    "aggregations" -> getAtlasObjectIds(aggregations.map(_.asInstanceOf[AtlasEntity]).asJava)
   )
 ) with HasReferredEntities {
   override def getReferredEntities: List[AtlasEntity] = {

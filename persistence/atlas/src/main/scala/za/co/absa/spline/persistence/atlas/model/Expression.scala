@@ -16,6 +16,7 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
+//import za.co.absa.spline.persistence.atlas.util.AtlasUtil._
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 

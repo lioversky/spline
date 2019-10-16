@@ -16,7 +16,7 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
-import org.apache.atlas.`type`.AtlasTypeUtil
+import za.co.absa.spline.persistence.atlas.util.AtlasUtil._
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 import scala.collection.JavaConverters._
@@ -73,7 +73,7 @@ class EndpointDataset(
   attributes,
   SparkDataTypes.EndpointDataset,
   Map(
-    "endpoint" -> AtlasTypeUtil.getAtlasObjectId(endpoint),
+    "endpoint" -> getAtlasObjectId(endpoint),
     "endpointType" -> endpointType.toString,
     "direction" -> direction.toString,
     "format" -> format

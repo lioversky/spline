@@ -16,7 +16,7 @@
 
 package za.co.absa.spline.persistence.atlas.conversion
 
-import org.apache.atlas.`type`.AtlasTypeUtil
+import za.co.absa.spline.persistence.atlas.util.AtlasUtil._
 import org.apache.atlas.model.instance.AtlasEntity
 import za.co.absa.spline.persistence.atlas.{model => atlasModel}
 import za.co.absa.spline.{model => splineModel}
@@ -37,7 +37,7 @@ object DataTypeConverter {
       case splineModel.dt.Struct(id, fields, nullable) => new atlasModel.StructDataType(convert(fields, id.toString), id.toString, nullable)
       case splineModel.dt.Array(id, elementDataTypeId, nullable) => new atlasModel.ArrayDataType(elementDataTypeId.toString, id.toString, nullable)
     }
-    val idAndNameMapping = atlasTypes.map(i => i.qualifiedName -> (AtlasTypeUtil.getAtlasObjectId(i), i.name)).toMap
+    val idAndNameMapping = atlasTypes.map(i => i.qualifiedName -> (getAtlasObjectId(i), i.name)).toMap
     atlasTypes.foreach(_.resolveIds(idAndNameMapping))
     atlasTypes
   }
