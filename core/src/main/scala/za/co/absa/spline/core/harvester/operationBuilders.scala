@@ -162,23 +162,26 @@ class InsertIntoTableNodeBuilder
   this: FSAwareBuilder =>
 
   override def build(): op.InsertIntoTable = {
-    val (table: Option[HiveTable], path: Option[String], append: Boolean) = operation match {
+    val (table: Option[HiveTable], path: Option[String], append: Boolean, partition: Option[String]) = operation match {
       case ir: InsertIntoHadoopFsRelationCommand =>
+        val partition: Option[String] = if (ir.partitionColumns.isEmpty) None else Some(ir.partitionColumns.toString())
         if (ir.catalogTable.nonEmpty) {
-          (Some(TableInfo.getTableInfo(ir.catalogTable.get)), None, ir.mode == SaveMode.Append)
+          (Some(TableInfo.getTableInfo(ir.catalogTable.get)), None, ir.mode == SaveMode.Append, partition)
         } else {
-          (None, Some(ir.outputPath.toString), ir.mode == SaveMode.Append)
+          (None, Some(ir.outputPath.toString), ir.mode == SaveMode.Append, partition)
         }
       case it: InsertIntoHiveTable =>
-        (Some(TableInfo.getTableInfo(it.table)), None, it.overwrite)
-      case _ => (None,None,false)
+        val partition: Option[String] = if (it.partition.isEmpty) None else Some(it.partition.toString())
+        (Some(TableInfo.getTableInfo(it.table)), None, it.overwrite, partition)
+      case _ => (None, None, false, None)
     }
     op.InsertIntoTable(
       operationProps,
       if (path.nonEmpty) "file" else "table",
       path.getOrElse(null),
       append,
-      table.getOrElse(null)
+      table.getOrElse(null),
+      if(partition.nonEmpty) partition.get else null
     )
   }
 

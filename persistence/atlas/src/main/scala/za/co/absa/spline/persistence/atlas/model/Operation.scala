@@ -254,11 +254,13 @@ class HiveRelationOperation(
  */
 class InsertIntoTableOperation(
   commonProperties: OperationCommonProperties,
-  append: Boolean
+  append: Boolean,
+  partition:String
 ) extends Operation(
   commonProperties,
   SparkDataTypes.WriteOperation,
-  Map("appendMode" -> Boolean.box(append)
+  Map("appendMode" -> Boolean.box(append),
+    ("partition" -> partition)
   )
 )
 

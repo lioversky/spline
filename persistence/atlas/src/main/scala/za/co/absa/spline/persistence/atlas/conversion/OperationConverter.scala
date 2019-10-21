@@ -43,8 +43,8 @@ class OperationConverter(expressionConverter: ExpressionConverter) {
       )
       o match {
         case op.Write(_, _, _, append, _, _) => new WriteOperation(commonProperties, append)
-        case op.InsertIntoTable(_, dt, path, append, table) =>
-          new InsertIntoTableOperation(commonProperties, append)
+        case op.InsertIntoTable(_, dt, path, append, table, partition) =>
+          new InsertIntoTableOperation(commonProperties, append, partition)
         case op.Sort(_, orders) =>
           val atlasOrders = orders.zipWithIndex.map{
             case (op.SortOrder(expression, direction, nullOrder), i) =>

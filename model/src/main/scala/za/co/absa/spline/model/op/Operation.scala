@@ -77,8 +77,8 @@ object Operation {
       case op@Union(mp) => op.copy(mainProps = fn(mp))
       case op@Projection(mp, _) => op.copy(mainProps = fn(mp))
       case op@HiveRelation(mp, sourceType, table) => op.copy(mainProps = fn(mp), sourceType, table)
-      case op@InsertIntoTable(mp, destinationType, path, append, table) =>
-        op.copy(mainProps = fn(mp),destinationType, path, append, table)
+      case op@InsertIntoTable(mp, destinationType, path, append, table, partition) =>
+        op.copy(mainProps = fn(mp),destinationType, path, append, table, partition)
       case op@Composite(mp, _, _, _, _, _) => op.copy(mainProps = fn(mp))
     }).asInstanceOf[T]
   }
@@ -257,7 +257,8 @@ case class InsertIntoTable(mainProps: OperationProps,
                            destinationType: String,
                            path:String,
                            append: Boolean,
-                           table:HiveTable)extends Operation
+                           table:HiveTable,
+                           partition: String = null)extends Operation
 
 /**
   * The case class represents a partial data lineage at its boundary level.
