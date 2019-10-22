@@ -16,7 +16,7 @@
 
 package za.co.absa.spline.persistence.atlas.conversion
 
-import za.co.absa.spline.persistence.atlas.util.AtlasUtil._
+import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasObjectId => Id}
 import za.co.absa.spline.model.op.InsertIntoTable
 import za.co.absa.spline.model.{DataLineage, op}
@@ -72,9 +72,9 @@ object DatasetConverter {
 
     val tableEntity = new HiveTable(table.id.toString, table.name, table.db.name, table.owner, table.comment, table.tableType, clusterName, dbEntity)
     val columnEntities = table.columns.map(col =>
-      new HiveColumn(col.name, col.dataType, table.owner, table.db.name, table.name, getAtlasObjectId(tableEntity), clusterName))
+      new HiveColumn(col.name, col.dataType, table.owner, table.db.name, table.name, AtlasTypeUtil.getAtlasObjectId(tableEntity), clusterName))
     val sdEntity = new HiveStorage(table.sd.location, table.sd.compressed,
-      table.sd.inputFormat, table.sd.outputFormat, table.db.name, table.name, getAtlasObjectId(tableEntity), clusterName
+      table.sd.inputFormat, table.sd.outputFormat, table.db.name, table.name, AtlasTypeUtil.getAtlasObjectId(tableEntity), clusterName
     )
     tableEntity.setIds(sdEntity, columnEntities)
     tableEntity

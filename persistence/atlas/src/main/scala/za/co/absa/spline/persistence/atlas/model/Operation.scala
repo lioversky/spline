@@ -56,7 +56,11 @@ class Operation(
     put("outputs", commonProperties.outputs.asJava)
     childProperties.foreach(i => put(i._1, i._2))
   }
-)
+){
+  def clearExpression(): Unit ={
+
+  }
+}
 
 /**
   * The class represents an arbitrary Spark operation that doesn't have corresponding Spline operation.
@@ -88,7 +92,7 @@ class JoinOperation(
   {
     val extraParameters = Map("joinType" -> joinType)
     condition match {
-      case Some(c) =>  extraParameters + ("condition" -> getAtlasObjectId(c))
+      case Some(c) =>  extraParameters + ("condition" -> AtlasTypeUtil.getAtlasObjectId(c))
       case None => extraParameters
     }
   }
@@ -100,6 +104,14 @@ class JoinOperation(
       case None => Nil
     }
 
+  }
+
+  override def clearExpression(): Unit = {
+    removeAttribute("condition")
+    condition match {
+      case Some(c) =>  setAttribute("description" , c.getAttribute("name"))
+      case None => Nil
+    }
   }
 }
 
@@ -114,10 +126,15 @@ class FilterOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.FilterOperation,
-  Map("condition" -> getAtlasObjectId(condition))
+  Map("condition" -> AtlasTypeUtil.getAtlasObjectId(condition))
 ) with HasReferredEntities{
   override def getReferredEntities: List[AtlasEntity] = {
     condition.asInstanceOf[AtlasEntity] +: condition.asInstanceOf[HasReferredEntities].getReferredEntities
+  }
+
+  override def clearExpression(): Unit = {
+    removeAttribute("condition")
+    setAttribute("description" , condition.getAttribute("name"))
   }
 }
 
@@ -133,10 +150,16 @@ class ProjectOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.ProjectOperation,
-  Map("transformations" -> getAtlasObjectIds(transformations.map(_.asInstanceOf[AtlasEntity]).asJava))
+  Map("transformations" -> AtlasTypeUtil.getAtlasObjectIds(transformations.map(_.asInstanceOf[AtlasEntity]).asJava))
 ) with HasReferredEntities{
   override def getReferredEntities: List[AtlasEntity] = {
     transformations.map(_.asInstanceOf[AtlasEntity]).toList ++ transformations.flatMap(_.asInstanceOf[HasReferredEntities].getReferredEntities)
+  }
+
+  override def clearExpression(): Unit = {
+    removeAttribute("transformations")
+    if (transformations.nonEmpty)
+      setAttribute("description", s"transformations: ${transformations.map(e => e.getAttribute("name")).mkString(",")}")
   }
 }
 
@@ -172,9 +195,10 @@ class SortOrder(
   new java.util.HashMap[String, Object]() {
     put("name", expression.commonProperties.text)
     put("qualifiedName", qualifiedName)
-    put("expression", getAtlasObjectId(expression))
+//    put("expression", getAtlasObjectId(expression))
     put("direction", direction)
     put("nullOrder", nullOrder)
+    put("description" , expression.getAttribute("name"))
   }
 ) with HasReferredEntities{
   override def getReferredEntities: List[AtlasEntity] = {
@@ -210,14 +234,20 @@ class AggregateOperation(
 ) extends Operation(
   commonProperties,
   SparkDataTypes.AggregateOperation,
-  Map("groupings" -> getAtlasObjectIds(groupings.map(_.asInstanceOf[AtlasEntity]).asJava) ,
-    "aggregations" -> getAtlasObjectIds(aggregations.map(_.asInstanceOf[AtlasEntity]).asJava)
-  )
+  Map("groupings" -> AtlasTypeUtil.getAtlasObjectIds(groupings.map(_.asInstanceOf[AtlasEntity]).asJava) ,
+    "aggregations" -> AtlasTypeUtil.getAtlasObjectIds(aggregations.map(_.asInstanceOf[AtlasEntity]).asJava))
 ) with HasReferredEntities {
   override def getReferredEntities: List[AtlasEntity] = {
     val groupingsList = groupings.map(_.asInstanceOf[AtlasEntity]).toList ++ groupings.flatMap(_.asInstanceOf[HasReferredEntities].getReferredEntities)
     val aggregationsList = aggregations.map(_.asInstanceOf[AtlasEntity]).toList ++ aggregations.flatMap(_.asInstanceOf[HasReferredEntities].getReferredEntities)
     groupingsList ++ aggregationsList
+  }
+
+  override def clearExpression(): Unit = {
+    removeAttribute("aggregations")
+    removeAttribute("groupings")
+    setAttribute("description" , s"aggregations: ${aggregations.map(e=> e.getAttribute("name")).mkString(",")} \ngroupings: ${groupings.map(e=> e.getAttribute("name")).mkString(",")}"
+    )
   }
 }
 
