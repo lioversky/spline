@@ -159,7 +159,7 @@ class ProjectOperation(
   override def clearExpression(): Unit = {
     removeAttribute("transformations")
     if (transformations.nonEmpty)
-      setAttribute("description", s"transformations: ${transformations.map(e => e.getAttribute("name")).mkString(",")}")
+      setAttribute("description", s"transformations: ${transformations.map(e => e.getAttribute("name")).mkString("\t\n")}")
   }
 }
 
@@ -246,7 +246,7 @@ class AggregateOperation(
   override def clearExpression(): Unit = {
     removeAttribute("aggregations")
     removeAttribute("groupings")
-    setAttribute("description" , s"aggregations: ${aggregations.map(e=> e.getAttribute("name")).mkString(",")} \ngroupings: ${groupings.map(e=> e.getAttribute("name")).mkString(",")}"
+    setAttribute("description" , s"aggregations: ${aggregations.map(e=> e.getAttribute("name")).mkString("\t\n")}\t\ngroupings: ${groupings.map(e=> e.getAttribute("name")).mkString("\t\n")}"
     )
   }
 }

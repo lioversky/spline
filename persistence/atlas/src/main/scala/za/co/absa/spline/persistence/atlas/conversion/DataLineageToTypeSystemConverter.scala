@@ -41,8 +41,8 @@ object DataLineageToTypeSystemConverter {
     val dataTypes = DataTypeConverter.convert(lineage.dataTypes)
     val dataTypeIdMap = toIdMap(dataTypes)
     val dataTypeIdAndNameMap = dataTypes.map(i => i.qualifiedName -> (AtlasTypeUtil.getAtlasObjectId(i), i.name)).toMap
-    val attributes = AttributeConverter.convert(lineage.attributes, dataTypeIdAndNameMap)
-    val attributesIdMap = toIdMap(attributes)
+    val (attributes,attributesIdMap) = AttributeConverter.convert(lineage.attributes, dataTypeIdAndNameMap)
+//    val attributesIdMap = toIdMap(attributes)
     val clusterName = atlasProperties.getString(ATLAS_CLUSTER_NAME, "primary")
     val dataSets = DatasetConverter.convert(lineage, dataTypeIdMap, attributesIdMap, clusterName)
 
