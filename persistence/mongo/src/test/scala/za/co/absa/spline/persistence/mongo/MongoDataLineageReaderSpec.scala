@@ -273,7 +273,9 @@ class MongoDataLineageReaderSpec extends MongoDataLineagePersistenceSpecBase wit
       appId,
       appName,
       timestamp,
+      0,
       "0.0.42",
+      Map.empty,
       Seq(
         Write(OperationProps(randomUUID, "Write", Seq(md1.id), md1.id), "parquet", outputPath, append = false, Map("x" -> 42), Map.empty),
         Generic(OperationProps(randomUUID, "Union", Seq(md1.id, md2.id), md3.id), "rawString1"),
