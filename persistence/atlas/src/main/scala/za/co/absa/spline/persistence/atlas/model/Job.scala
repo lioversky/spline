@@ -39,7 +39,8 @@ class Job(
   qualifiedName: String,
   timestamp:Long,
   durationMs:Long,
-  metrics: Map[String,Long],
+  readMetrics: Map[String, Long],
+  writeMetrics: Map[String, Long],
   operations: Seq[Id],
   datasets: Seq[Id],
   inputDatasets: Seq[Id],
@@ -61,6 +62,7 @@ class Job(
       put("datasets", datasets.asJava)
       put("inputDatasets", inputDatasets.asJava)
       put("outputDatasets", outputDatasets.asJava)
-      put("metrics", metrics.asJava)
+      put("readMetrics", readMetrics.asJava)
+      put("writeMetrics", writeMetrics.asJava)
     }
   )

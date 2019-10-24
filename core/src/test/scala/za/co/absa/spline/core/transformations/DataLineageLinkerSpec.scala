@@ -51,7 +51,7 @@ class DataLineageLinkerSpec extends AsyncFlatSpec with Matchers with MockitoSuga
       val operation1 = Read(OperationProps(randomUUID, "read", Seq.empty, dataset.id), "parquet", Seq(MetaDataSource("some/path_known", Nil)))
       val operation2 = Read(OperationProps(randomUUID, "read", Seq.empty, dataset.id), "parquet", Seq(MetaDataSource("some/path_unknown", Nil)))
 
-      DataLineage("appId2", "appName2", 2L,0, spark.SPARK_VERSION, Map.empty, Seq(operation1, operation2), Seq(dataset), attributes, Seq(dataType))
+      DataLineage("appId2", "appName2", 2L,0, spark.SPARK_VERSION, Map.empty, Map.empty, Seq(operation1, operation2), Seq(dataset), attributes, Seq(dataType))
     }
 
     (when(dataLineageReader.findLatestDatasetIdsByPath(any())(any()))

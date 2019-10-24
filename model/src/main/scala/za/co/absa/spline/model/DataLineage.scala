@@ -41,7 +41,8 @@ case class DataLineage
   timestamp: Long,
   durationMs:Long,
   sparkVer: String,
-  metrics: Map[String, Long],
+  readMetrics: Map[String, Long],
+  writeMetrics: Map[String, Long],
   operations: Seq[Operation],
   datasets: Seq[MetaDataset],
   attributes: Seq[Attribute],
@@ -84,7 +85,8 @@ case class DataLineage
 object DataLineage {
   private def rectify(lineage: DataLineage): DataLineage = {
     val durationMs = lineage.durationMs
-    val metrics = lineage.metrics
+    val readMetrics = lineage.readMetrics
+    val writeMetrics = lineage.writeMetrics
     val operations = lineage.operations
     val datasets = {
       val datasetIds =
@@ -141,7 +143,8 @@ object DataLineage {
 
     lineage.copy(
       durationMs = durationMs,
-      metrics = metrics,
+      readMetrics = readMetrics,
+      writeMetrics = writeMetrics,
       operations = operations,
       datasets = datasets,
       attributes = attributes,
