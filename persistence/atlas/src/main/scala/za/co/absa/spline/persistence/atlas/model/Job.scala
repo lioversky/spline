@@ -16,6 +16,9 @@
 
 package za.co.absa.spline.persistence.atlas.model
 
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import org.apache.atlas.model.instance.{AtlasEntity, AtlasObjectId => Id}
 
 import scala.collection.JavaConverters._
@@ -53,7 +56,8 @@ class Job(
     SparkDataTypes.Job,
     new java.util.HashMap[String, Object]{
       put("id", id)
-      put("name", name)
+      put("name", name + ":" + new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss").format(new Date(timestamp)))
+      put("jobName", name)
       put("qualifiedName", qualifiedName)
       put("endTime", Long.box(timestamp))
       put("durationMs", Long.box(durationMs))

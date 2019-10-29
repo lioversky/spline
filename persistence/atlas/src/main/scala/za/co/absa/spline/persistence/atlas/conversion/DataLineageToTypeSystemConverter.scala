@@ -95,7 +95,7 @@ object DataLineageToTypeSystemConverter {
 
     val job = new Job(
       lineage.appId,
-      lineage.appName + ":" + new SimpleDateFormat("yyyy-MM-dd'T'H:mm:ss").format(new Date(lineage.timestamp)),
+      lineage.appName,
       lineage.id,
       lineage.timestamp,
       lineage.durationMs,
