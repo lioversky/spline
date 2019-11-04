@@ -24,7 +24,7 @@ import scala.collection.JavaConverters._
  * Create by hongxun on 2019/9/24
  */
 class SparkProcess(
-               name: String,
+               val name: String,
                qualifiedName: String,
                currUser: String,
                details: String,
