@@ -101,13 +101,13 @@ class AtlasDataLineageWriter extends AtlasHook with DataLineageWriter with Loggi
     val database = getConf().getString("atlas.notification.influxdb.database","process-quality")
 
     val conf = new InfluxdbConf("http",host,port,database)
-    val tagMap:Map[String,String] = Map("appId"->lineage.appId,"appName"->lineage.appName,"process"->processName)
+    val tagMap:Map[String,String] = Map("appId"->lineage.appId,"appName"->lineage.appName)
     val fieldMap:java.util.Map[String,Object] =
       (Map("durationMs"->lineage.durationMs) ++ lineage.writeMetrics ++ lineage.readMetrics)
       .map(t=> (t._1,t._2.asInstanceOf[Object])).asJava
 
     val sender = new InfluxDbHttpSender(conf)
-    sender.appendPoints(new InfluxDbPoint(SparkDataTypes.Job, tagMap.asJava, lineage.timestamp, fieldMap) )
+    sender.appendPoints(new InfluxDbPoint(processName, tagMap.asJava, lineage.timestamp, fieldMap) )
     sender.writeData()
   }
 

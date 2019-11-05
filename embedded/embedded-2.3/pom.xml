@@ -186,15 +186,15 @@
               <relocations>
                 <relocation>
                   <pattern>com.google.common</pattern>
-                  <shadedPattern>dip_google.guava.common</shadedPattern>
+                  <shadedPattern>spline_google.guava.common</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.kafka</pattern>
-                  <shadedPattern>dip_org.apache.kafka</shadedPattern>
+                  <shadedPattern>spline_org.apache.kafka</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>kafka</pattern>
-                  <shadedPattern>dip_kafka</shadedPattern>
+                  <shadedPattern>spline_kafka</shadedPattern>
                 </relocation>
               </relocations>
               <filters>
