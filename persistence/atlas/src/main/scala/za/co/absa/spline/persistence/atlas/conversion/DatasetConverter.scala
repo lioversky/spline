@@ -18,6 +18,10 @@ package za.co.absa.spline.persistence.atlas.conversion
 
 import org.apache.atlas.`type`.AtlasTypeUtil
 import org.apache.atlas.model.instance.{AtlasObjectId => Id}
+import org.apache.atlas.utils.HdfsNameServiceResolver
+import org.apache.commons.lang.StringUtils
+import org.apache.hadoop.fs.Path
+import za.co.absa.spline.common.util.FileNameUtil
 import za.co.absa.spline.model.op.InsertIntoTable
 import za.co.absa.spline.model.{DataLineage, op}
 import za.co.absa.spline.persistence.atlas.model._
@@ -44,28 +48,78 @@ object DatasetConverter {
       val name = operation.mainProps.name + datasetSuffix
       val qualifiedName = dataset.id
       val attributes = dataset.schema.attrs.map(u=>attributeIdMap(u.toString))
+
       operation match {
         case op.Read(_, st, paths) =>
           val path = paths.map(_.path) mkString ", "
-          new EndpointDataset(name, qualifiedName.toString, attributes, new FileEndpoint(path, path), EndpointType.file, EndpointDirection.input, st)
+          new EndpointDataset(name, qualifiedName.toString, attributes, getHdfsEntity(paths.map(_.path),clusterName), EndpointType.file, EndpointDirection.input, st)
         case op.HiveRelation(_, st, table) => {
           val tableEntity = getTableEntity(table, clusterName)
           new EndpointDataset(name, qualifiedName.toString, attributes, tableEntity, EndpointType.hive_table, EndpointDirection.input, st)
         }
         case op.Write(_, dt, path, _, _, _) =>
-          new EndpointDataset(name, qualifiedName.toString, attributes, new FileEndpoint(path, path), EndpointType.file, EndpointDirection.output, dt)
+          new EndpointDataset(name, qualifiedName.toString, attributes, getHdfsEntity(Seq(path), clusterName), EndpointType.file, EndpointDirection.output, dt)
         case InsertIntoTable(_, dt, path, _, table, _) =>
           dt match {
             case "table" =>
               val tableEntity = getTableEntity(table, clusterName)
               new EndpointDataset(name, qualifiedName.toString, attributes, tableEntity, EndpointType.hive_table, EndpointDirection.output, dt)
             case _ =>
-              new EndpointDataset(name, qualifiedName.toString, attributes, new FileEndpoint(path, path), EndpointType.file, EndpointDirection.output, dt)
+              new EndpointDataset(name, qualifiedName.toString, attributes, getHdfsEntity(Seq(path), clusterName), EndpointType.file, EndpointDirection.output, dt)
           }
         case _ => new Dataset(name, qualifiedName.toString, attributes)
       }
     }
   }
+
+  def getHdfsEntity(paths: Seq[String], clusterName: String):FileEndpoint = {
+    val option = FileNameUtil.findUniqueParent(paths)
+    val (name, pathStr, qualifiedName) = option match {
+      case Some(pathUri) =>
+        val reducePath = FileNameUtil.reducePathWithoutTime(pathUri)
+        val path: Path = new Path(reducePath)
+        val name = Path.getPathWithoutSchemeAndAuthority(path).toString
+
+        val nameServiceID: String = HdfsNameServiceResolver.getNameServiceIDForPath(reducePath)
+
+        val pathStr = if (StringUtils.isNotEmpty(nameServiceID) &&
+          reducePath.startsWith(HdfsNameServiceResolver.HDFS_SCHEME)) {
+          // Name service resolution is successful, now get updated HDFS path where the host port info is replaced by resolved name service
+          HdfsNameServiceResolver.HDFS_SCHEME + nameServiceID + name
+        } else reducePath
+        // Only append metadataNamespace for the HDFS path
+        val qualifiedName = if (reducePath.startsWith(HdfsNameServiceResolver.HDFS_SCHEME)) {
+          pathStr + "@" + clusterName
+        } else reducePath
+
+        (name, pathStr, qualifiedName)
+      case None =>
+        val pathSet = paths.map(pathUri => {
+          val reducePath = FileNameUtil.reducePathWithoutTime(pathUri)
+          val nameServiceID: String = HdfsNameServiceResolver.getNameServiceIDForPath(pathUri)
+          val path: Path = new Path(reducePath)
+          val name = Path.getPathWithoutSchemeAndAuthority(path).toString
+
+          val pathStr = if (StringUtils.isNotEmpty(nameServiceID)) {
+            // Name service resolution is successful, now get updated HDFS path where the host port info is replaced by resolved name service
+            HdfsNameServiceResolver.getPathWithNameServiceID(reducePath)
+          } else reducePath
+          // Only append metadataNamespace for the HDFS path
+          val qualifiedName = if (pathUri.startsWith(HdfsNameServiceResolver.HDFS_SCHEME)) {
+            pathStr + "@" + clusterName
+          } else pathUri
+
+          (name, pathStr, qualifiedName)
+
+        }).toSet
+
+        pathSet.head
+    }
+
+
+    new FileEndpoint(name, pathStr, qualifiedName)
+  }
+
 
   def getTableEntity(table: za.co.absa.spline.model.HiveTable, clusterName: String): HiveTable = {
     val dbEntity = new HiveDatabase(table.db.name, clusterName)

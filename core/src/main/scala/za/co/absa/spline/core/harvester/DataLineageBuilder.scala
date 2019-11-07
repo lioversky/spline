@@ -32,6 +32,7 @@ import scalaz.Scalaz._
 import za.co.absa.spline.core.harvester.DataLineageBuilder.{Metrics, _}
 import za.co.absa.spline.coresparkadapterapi._
 import za.co.absa.spline.model._
+import za.co.absa.spline.common.util.FileNameUtil
 import org.apache.spark.sql.hive.execution.HiveTableScanExecType
 
 class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[SparkPlan], sparkContext: SparkContext)
@@ -190,12 +191,17 @@ object DataLineageBuilder {
               case f: FileSourceScanExec => {
                 f.tableIdentifier match {
                   case Some(x) => x.toString()
-                  case None => f.relation.location.rootPaths.mkString(",")
+                  case None =>
+                    val option = FileNameUtil.findUniqueParent(f.relation.location.rootPaths.map(_.toString))
+                    option match {
+                      case Some(p) => p
+                      case None => f.relation.location.rootPaths.mkString(",")
+                    }
                 }
               }
               case h: HiveTableScanExecType => h.relation.tableMeta.identifier.toString()
               case e:ExecutedCommandExec => e.cmd.getClass.getName
-              case i: InMemoryTableScanExec => "InMemory." + i.relation.tableName.getOrElse("")
+              case i: InMemoryTableScanExec => "InMemory" + i.relation.tableName.getOrElse("")
               case _ => "read"
             }
             traverseAndCollect(acc ++ Map(key ->getNodeMetrics(leaf)), queue)

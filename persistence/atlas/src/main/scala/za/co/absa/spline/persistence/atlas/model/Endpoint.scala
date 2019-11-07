@@ -44,10 +44,10 @@ object EndpointType extends Enumeration {
  * @param path A relative path to the file
  * @param uri  An absolute path to the file including cluster name, etc.
  */
-class FileEndpoint(val path: String, uri: String) extends AtlasEntity(
+class FileEndpoint(name:String, val path: String, uri: String) extends AtlasEntity(
   SparkDataTypes.FileEndpoint,
   new java.util.HashMap[String, Object] {
-    put("name", path)
+    put("name", name)
     put("qualifiedName", uri)
     put("path", path)
   }
