@@ -185,10 +185,6 @@
             <configuration>
               <relocations>
                 <relocation>
-                  <pattern>com.google.common</pattern>
-                  <shadedPattern>spline_google.guava.common</shadedPattern>
-                </relocation>
-                <relocation>
                   <pattern>org.apache.kafka</pattern>
                   <shadedPattern>spline_org.apache.kafka</shadedPattern>
                 </relocation>

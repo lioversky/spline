@@ -109,6 +109,7 @@ class AtlasDataLineageWriter extends AtlasHook with DataLineageWriter with Loggi
     val sender = new InfluxDbHttpSender(conf)
     sender.appendPoints(new InfluxDbPoint(processName, tagMap.asJava, lineage.timestamp, fieldMap) )
     sender.writeData()
+    log.info("Send data to influxdb successed.")
   }
 
 

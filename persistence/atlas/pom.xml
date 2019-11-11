@@ -43,6 +43,10 @@
                     <groupId>jdk.tools</groupId>
                     <artifactId>jdk.tools</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.atlas</groupId>
+                    <artifactId>atlas-client-v1</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
