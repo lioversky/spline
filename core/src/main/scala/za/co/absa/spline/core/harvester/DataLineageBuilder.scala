@@ -192,7 +192,8 @@ object DataLineageBuilder {
                 f.tableIdentifier match {
                   case Some(x) => x.toString()
                   case None =>
-                    val option = FileNameUtil.findUniqueParent(f.relation.location.rootPaths.map(_.toString))
+                    val option = FileNameUtil.findUniqueParent(f.relation.location.rootPaths.map(_.toString),
+                      reduce = true)
                     option match {
                       case Some(p) => p
                       case None => f.relation.location.rootPaths.mkString(",")

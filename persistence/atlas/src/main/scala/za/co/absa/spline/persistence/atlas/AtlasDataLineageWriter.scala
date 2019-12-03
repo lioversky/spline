@@ -33,6 +33,7 @@ import za.co.absa.spline.persistence.atlas.model.{EndpointDataset, Expression, H
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import com.izettle.metrics.influxdb.{Configuration => InfluxdbConf, _}
+
 /**
  * The class represents Atlas persistence layer for the [[za.co.absa.spline.model.DataLineage DataLineage]] entity.
  */
@@ -86,7 +87,7 @@ class AtlasDataLineageWriter extends AtlasHook with DataLineageWriter with Loggi
             case _ => None
           }
           val process = processEntities.filter(_.isInstanceOf[SparkProcess]).head.asInstanceOf[SparkProcess]
-          sendMetrics(lineage,process.name)
+          sendMetrics(lineage, process.name)
           new AtlasEntity.AtlasEntitiesWithExtInfo(processEntities.asJava)
         }
       }
@@ -95,19 +96,33 @@ class AtlasDataLineageWriter extends AtlasHook with DataLineageWriter with Loggi
     }
   }
 
-  def sendMetrics(lineage: DataLineage,processName:String): Unit ={
+  def sendMetrics(lineage: DataLineage, processName: String): Unit = {
     val host = getConf().getString("atlas.notification.influxdb.host")
-    val port = getConf().getInt("atlas.notification.influxdb.port",8086)
-    val database = getConf().getString("atlas.notification.influxdb.database","process-quality")
+    val port = getConf().getInt("atlas.notification.influxdb.port", 8086)
+    val database = getConf().getString("atlas.notification.influxdb.database", "process-quality")
 
-    val conf = new InfluxdbConf("http",host,port,database)
-    val tagMap:Map[String,String] = Map("appId"->lineage.appId,"appName"->lineage.appName)
-    val fieldMap:java.util.Map[String,Object] =
-      (Map("durationMs"->lineage.durationMs) ++ lineage.writeMetrics ++ lineage.readMetrics)
-      .map(t=> (t._1,t._2.asInstanceOf[Object])).asJava
+    val conf = new InfluxdbConf("http", host, port, database)
+    val tagMap: Map[String, String] = Map("appId" -> lineage.appId, "appName" -> lineage.appName)
+    val fieldMap: java.util.Map[String, Object] =
+      (Map("durationMs" -> lineage.durationMs) ++ lineage.writeMetrics ++ lineage.readMetrics)
+        .map(t => (t._1, t._2.asInstanceOf[Object])).asJava
 
     val sender = new InfluxDbHttpSender(conf)
-    sender.appendPoints(new InfluxDbPoint(processName, tagMap.asJava, lineage.timestamp, fieldMap) )
+    // add process data
+    sender.appendPoints(new InfluxDbPoint(processName, tagMap.asJava, lineage.timestamp, fieldMap))
+    //    sender.writeData()
+    val reg = ".*=>(.*)(@.*)?".r
+    val output = processName match {
+      case reg(output, _) => output
+      case _ => processName
+    }
+    // add process relationship
+    lineage.readMetrics.filter(_._1.endsWith("numOutputRows")).foreach(read => {
+      val input = read._1.substring(0, read._1.indexOf(".numOutputRows")).replaceAll("`", "")
+      sender.appendPoints(new InfluxDbPoint("input-to-output", Map("input" -> input, "output" -> output).asJava,
+        lineage.timestamp, Map[String, java.lang.Object]("num" -> Long.box(read._2)).asJava))
+
+    })
     sender.writeData()
     log.info("Send data to influxdb successed.")
   }

@@ -27,14 +27,22 @@ object FileNameUtil {
   //({}=(yyyyMMddHH yyyy-MM-dd yyyy_MM_dd)) {}=HH?
   private val partitionFormat = "^.*(/\\w+=\\d{4,8}|/\\w+=\\d{4}-\\d{2}|/\\w+=\\d{4}-\\d{2}-\\d{2}|/\\w+=\\d{4}_\\d{2}_\\d{2})(/\\w+=\\d{1,4})?$".r
 
-  def findUniqueParent(paths: Seq[String]): Option[String] = {
+  /**
+   * Multiple paths looking for the same parent directory.
+   *
+   * @param paths Multiple path
+   * @return
+   */
+  def findUniqueParent(paths: Seq[String], reduce: Boolean = false): Option[String] = {
     if (paths == null || paths.length == 0) None
     else if (paths.length == 1) Some(paths(0))
     else {
       val pathArray = paths.map(path => path.split("/"))
+      //start with min length
       val minLength = pathArray.map(arr => arr.length).min
       var minIndex = -1;
       var findFlag = false
+      // stop with same parent
       for (i <- (0 until minLength).reverse if !findFlag) {
         val v = pathArray(0)(i)
         if (pathArray.forall(arr => v.equals(arr(i)))) {
@@ -42,8 +50,11 @@ object FileNameUtil {
           findFlag = true
         }
       }
-      if (minIndex > 0)
-        Some(pathArray(0).slice(0, minIndex).mkString("/"))
+      if (minIndex > 0) {
+        val parent = pathArray(0).slice(0, minIndex).mkString("/")
+        if (reduce) Some(reducePathWithoutTime(parent))
+        else Some(parent)
+      }
       else None
     }
 

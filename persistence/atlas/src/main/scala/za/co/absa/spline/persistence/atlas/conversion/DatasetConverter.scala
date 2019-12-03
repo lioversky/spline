@@ -73,10 +73,10 @@ object DatasetConverter {
   }
 
   def getHdfsEntity(paths: Seq[String], clusterName: String):FileEndpoint = {
-    val option = FileNameUtil.findUniqueParent(paths)
+    val option = FileNameUtil.findUniqueParent(paths, true)
     val (name, pathStr, qualifiedName) = option match {
       case Some(pathUri) =>
-        val reducePath = FileNameUtil.reducePathWithoutTime(pathUri)
+        val reducePath = pathUri
         val path: Path = new Path(reducePath)
         val name = Path.getPathWithoutSchemeAndAuthority(path).toString
 
