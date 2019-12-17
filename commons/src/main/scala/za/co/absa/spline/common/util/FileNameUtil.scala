@@ -35,7 +35,10 @@ object FileNameUtil {
    */
   def findUniqueParent(paths: Seq[String], reduce: Boolean = false): Option[String] = {
     if (paths == null || paths.length == 0) None
-    else if (paths.length == 1) Some(paths(0))
+    else if (paths.length == 1) {
+      if (reduce) Some(reducePathWithoutTime(paths(0)))
+      else Some(paths(0))
+    }
     else {
       val pathArray = paths.map(path => path.split("/"))
       //start with min length

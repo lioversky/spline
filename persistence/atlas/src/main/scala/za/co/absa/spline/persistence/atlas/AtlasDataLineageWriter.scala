@@ -28,7 +28,7 @@ import org.slf4s.Logging
 import za.co.absa.spline.model.DataLineage
 import za.co.absa.spline.persistence.api.DataLineageWriter
 import za.co.absa.spline.persistence.atlas.conversion.DataLineageToTypeSystemConverter
-import za.co.absa.spline.persistence.atlas.model.{EndpointDataset, Expression, HasReferredEntities, Operation, SparkDataTypes, SparkProcess}
+import za.co.absa.spline.persistence.atlas.model.{EndpointDataset, Expression, HasReferredEntities, HiveTable, Operation, SparkDataTypes, SparkProcess}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future, blocking}
@@ -82,8 +82,9 @@ class AtlasDataLineageWriter extends AtlasHook with DataLineageWriter with Loggi
           val processEntities = entityCollections.flatMap {
             case p: SparkProcess => Some(p)
             case e: EndpointDataset =>
-              val endpoint = e.endpoint
-              endpoint.asInstanceOf[HasReferredEntities].getReferredEntities :+ endpoint
+              //do not save hive table
+              if (e.endpoint.isInstanceOf[HiveTable]) None
+              else Some(e.endpoint)
             case _ => None
           }
           val process = processEntities.filter(_.isInstanceOf[SparkProcess]).head.asInstanceOf[SparkProcess]
@@ -120,8 +121,9 @@ class AtlasDataLineageWriter extends AtlasHook with DataLineageWriter with Loggi
     lineage.readMetrics.filter(_._1.endsWith("numOutputRows")).foreach(read => {
       val input = read._1.substring(0, read._1.indexOf(".numOutputRows")).replaceAll("`", "")
       sender.appendPoints(new InfluxDbPoint("input-to-output", Map("input" -> input, "output" -> output).asJava,
-        lineage.timestamp, Map[String, java.lang.Object]("num" -> Long.box(read._2)).asJava))
-
+        lineage.timestamp,
+        Map[String, java.lang.Object]("inputNum" -> Long.box(read._2),
+          "outputNum" -> Long.box(lineage.writeMetrics.getOrElse("numOutputRows", 0))).asJava))
     })
     sender.writeData()
     log.info("Send data to influxdb successed.")

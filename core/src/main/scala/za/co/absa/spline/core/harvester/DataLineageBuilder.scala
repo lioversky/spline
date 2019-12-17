@@ -26,7 +26,7 @@ import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
 import org.apache.spark.sql.execution.command.{DataWritingCommand, ExecutedCommandExec}
 import org.apache.spark.sql.execution.datasources.{InsertIntoHadoopFsRelationCommand, LogicalRelation}
-import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, LocalTableScanExec, SparkPlan}
+import org.apache.spark.sql.execution.{FileRelation, FileSourceScanExec, LeafExecNode, LocalTableScanExec, SparkPlan}
 import org.apache.spark.sql.hive.execution._
 import scalaz.Scalaz._
 import za.co.absa.spline.core.harvester.DataLineageBuilder.{Metrics, _}
@@ -163,6 +163,22 @@ class DataLineageBuilder(logicalPlan: LogicalPlan, executedPlanOpt: Option[Spark
     executedPlanOpt.
       map(getExecutedReadWriteMetrics).
       getOrElse((Map.empty, Map.empty))
+  }
+  private def discoverInputsEntities(
+                                      plan: LogicalPlan,
+                                      executedPlan: SparkPlan): Seq[String] = {
+    val tChildren = plan.collectLeaves()
+    tChildren.flatMap {
+      case r: HiveTableRelation => Seq(r.tableMeta.identifier.table)
+      case v: View => Seq(v.desc.identifier.table)
+      case LogicalRelation(fileRelation: FileRelation, _, catalogTable, _) =>
+        catalogTable.map(tbl => Seq(tbl.identifier.table)).getOrElse(
+          Seq(FileNameUtil.findUniqueParent(fileRelation.inputFiles.toSeq)
+          .getOrElse(fileRelation.inputFiles.mkString(","))))
+      case e =>
+//        logWarn(s"Missing unknown leaf node: $e")
+        Seq.empty
+    }
   }
 
   trait HDFSAwareBuilder extends FSAwareBuilder {
